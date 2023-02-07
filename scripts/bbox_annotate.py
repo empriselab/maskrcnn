@@ -50,7 +50,6 @@ class BBoxAnnotator():
         # placeholder for semantic segmentation, will eventually read from JSON
         # TODO: read from JSON
         self.segmentation = self.tmp_get_segmentation()
-        self.max_depth = 0.49    # REPLACE WITH SOMETHING MORE SCIENTIFIC 
 
         # initial base to camera transform
         self.init_camera_tf = None
@@ -73,12 +72,11 @@ class BBoxAnnotator():
         Initialize ROS nodes, register subscribers
         """
         camera_info_sub = message_filters.Subscriber(
-            '/camera_1/aligned_depth_to_color/camera_info', CameraInfo, queue_size=10)
+            '/camera_1/aligned_depth_to_color/camera_info', CameraInfo, queue_size=1)
         color_image_sub = message_filters.Subscriber(
-            '/camera_1/color/image_raw', Image, queue_size=10)
+            '/camera_1/color/image_raw', Image, queue_size=1)
         depth_image_sub = message_filters.Subscriber(
-            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=10)
-
+            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=1)
 
         ts = message_filters.TimeSynchronizer(
             [camera_info_sub, color_image_sub, depth_image_sub], 1)
@@ -99,7 +97,6 @@ class BBoxAnnotator():
         x, y = 25, 25
         topics = [
             '/camera_1/color/image_raw', 
-            # '3d_projection'
         ]
         for t in topics:
             cv2.namedWindow(t, cv2.WINDOW_NORMAL)
@@ -107,7 +104,7 @@ class BBoxAnnotator():
             cv2.moveWindow(t, x, y)
             y += 360
 
-    def get_base_2_camera_tf(self):
+    def get_base_to_camera_tf(self):
         """
         Get transform from base_link to camera
         """
@@ -122,7 +119,7 @@ class BBoxAnnotator():
                 continue
         return transform
 
-    def get_camera_info(self, camera_info: CameraInfo):
+    def register_camera_info(self, camera_info: CameraInfo):
         """
         Extract fx, fy, cx, cy for future use
         """
@@ -148,7 +145,7 @@ class BBoxAnnotator():
         return (
             self.cv_bridge.imgmsg_to_cv2(
                 color_img)[:, :, ::-1].astype('uint8'),    # rgb->bgr
-            self.cv_bridge.imgmsg_to_cv2(depth_img, "64FC1")
+            self.cv_bridge.imgmsg_to_cv2(depth_img, "32FC1")
         )
 
     def tmp_get_segmentation(self):
@@ -157,41 +154,39 @@ class BBoxAnnotator():
         Will eventually use something sophisticated like a JSON file
         """
         blank = np.zeros((self.height, self.width))
-        cv2.circle(blank, (694, 165), 47, 1, thickness=-1)    # 47
+        cv2.circle(blank, (694, 165), 47, 1, thickness=-1)    # manual config
         seg = np.where(blank == 1)
         return seg 
 
-    def vec_pixel_to_world(self, mat:np.array, depth:np.array, camera_info:CameraInfo):
+    def vec_pixel_to_world(self, mat:np.array, depth:np.array):
         """
         A vectorized version of the above. `mat` represents a list of x,y,depth points
         """
         assert mat.shape[0] == depth.shape[0]
 
-        self.get_camera_info(camera_info)
         world = np.zeros((mat.shape[0], 3))
 
-        world[:, 0] = (depth / self.fx) * (mat[:, 0] - self.cx)
-        world[:, 1] = (depth / self.fy) * (mat[:, 1] - self.cy)
-        world[:, 2] = depth 
+        world[:, 0] = (depth / self.fx) * (mat[:, 0] - self.cx)    # world x
+        world[:, 1] = (depth / self.fy) * (mat[:, 1] - self.cy)    # world y
+        world[:, 2] = depth                                        # world z         
 
         return world
 
-    def create_3d_world(self, camera_info: CameraInfo, depth_img_cv: np.array) -> None:
+    def create_3d_world(self, depth_img_cv: np.array) -> None:
         """
         Use human-annotated bboxes to render 3d bounding prisms of objects
         """
+        depth_map = depth_img_cv / 1000.0    # mm -> m
+        depth_values = depth_map[self.segmentation]
 
-        depth_map = depth_img_cv / 1000.    # mm -> m
-        depth_values = depth_map[self.segmentation].flatten()
-
-         # here row values correspond to y, column values correspond to x so we must invert
+        # here row values correspond to y, column values correspond to x so we must invert
         reshape_coords = np.array(list(zip(self.segmentation[1], self.segmentation[0])))   
-        world = self.vec_pixel_to_world(reshape_coords, depth_values, camera_info)
+        world = self.vec_pixel_to_world(reshape_coords, depth_values)
         self.objects.append(world)
 
         self.world_created = True
 
-    def compute_projection(self, camera_info: CameraInfo, transform_mat:np.array=None) -> np.array:
+    def compute_projection(self, transform_mat:np.array=None) -> np.array:
         """
         Placeholder fn for rendering 3D -> 2D projections
         """
@@ -200,10 +195,8 @@ class BBoxAnnotator():
             translation_vec = np.array([0.0, 0.0, 0.0])
         else:
             rotation_vec, _ = cv2.Rodrigues(transform_mat[:3, :3]) 
-            rotation_vec = np.multiply(rotation_vec, np.array([[1.0], [1.1], [1.0]]))
             translation_vec = transform_mat[0:3, -1]
 
-        self.get_camera_info(camera_info)
         camera_mat = np.array([
             [self.fx, 0, self.cx],
             [0, self.fy, self.cy],
@@ -213,14 +206,13 @@ class BBoxAnnotator():
         projection, _ = cv2.projectPoints(
             np.array(self.objects[0]),    # TODO: fix logic here
             rotation_vec,
-            -translation_vec,
+            translation_vec,
             camera_mat,
             None
         )
-
         return projection[:, 0, :]    # ignore weird y coord
 
-    def display_windows(self, color_img: np.array, depth_img: np.array, projection: np.array) -> None:
+    def display_windows(self, color_img: np.array, projection: np.array) -> None:
         """
         Helper fn to display all OpenCV windows
         """
@@ -232,31 +224,13 @@ class BBoxAnnotator():
             pass
 
         # imshow, push to top, save if needed
-        cv2.imshow('/camera_1/color/image_raw', color_img)
+        cv2.imshow('/camera_1/color/image_raw', color_img)  
         if self.save_images:
             cv2.imwrite('../data/interim/{0:05d}.png'.format(self.callback_counter), color_img)
 
         cv2.setWindowProperty('/camera_1/color/image_raw',
                               cv2.WND_PROP_TOPMOST, 1)
         cv2.waitKey(1)
-
-    # def tmp_callback(self, camera_info:CameraInfo, initial_base_to_camera_tf, current_base_to_camera_tf):
-
-    #     current_camera_wrt_init_camera = np.linalg.inv(initial_base_to_camera_tf) @ current_base_to_camera_tf
-
-    #     pinhole = PinholeCameraModel()
-    #     pinhole.fromCameraInfo(camera_info)
-    #     projections = []
-    #     salami = self.objects[0]
-
-    #     for point in salami:
-    #         moved_point = current_camera_wrt_init_camera @ np.array([point[0], point[1], point[2], 1]) 
-    #         out =  pinhole.project3dToPixel(tuple([moved_point[1], moved_point[0], moved_point[2]]))
-    #         print(out)
-    #         projections.append(out)
-
-    #     return projections
-
 
     def callback(self, camera_info: CameraInfo, color_img: Image, depth_img: Image):
         """
@@ -268,24 +242,22 @@ class BBoxAnnotator():
         color_img_cv, depth_img_cv = self.convert_images(color_img, depth_img)
 
         # get current base to camera transform
-        base_to_camera_tf = self.transform_to_mat(self.get_base_2_camera_tf())
+        base_to_camera_tf = self.transform_to_mat(self.get_base_to_camera_tf())
 
         if not self.world_created:
             # initial callback: store current tf, create 3d world
-            self.get_camera_info(camera_info)
+            self.register_camera_info(camera_info)
             self.init_camera_tf = base_to_camera_tf
-            self.create_3d_world(camera_info, depth_img_cv)
-            projection = self.compute_projection(camera_info)
+            self.create_3d_world(depth_img_cv)
+            projection = self.compute_projection()
         else:
             # regular callback: find transform to position
-            # init_camera_to_camera_tf = np.linalg.inv(base_to_camera_tf) @ self.init_camera_tf
-            init_camera_to_camera_tf = np.linalg.inv(self.init_camera_tf ) @ base_to_camera_tf
-            projection = self.compute_projection(camera_info, init_camera_to_camera_tf)
-            # projection = self.tmp_callback(camera_info, self.init_camera_tf, init_camera_to_camera_tf)
-
+            init_camera_to_camera_tf = np.linalg.inv(base_to_camera_tf) @ self.init_camera_tf
+            # init_camera_to_camera_tf = np.linalg.inv(self.init_camera_tf ) @ base_to_camera_tf
+            projection = self.compute_projection(init_camera_to_camera_tf)
 
         if self.show_cv:
-            self.display_windows(color_img_cv, depth_img_cv, projection)
+            self.display_windows(color_img_cv, projection)
 
         callback_end_time = time.time()
         print("Callback Time : {}".format(
@@ -401,7 +373,7 @@ if __name__ == '__main__':
 #     """
 #     Converts a pixel coordinate (x,y) into real world (x,y,z) space
 #     """
-#     fx, fy, cx, cy = self.get_camera_info(camera_info)
+#     fx, fy, cx, cy = self.register_camera_info(camera_info)
 #     world_x = (depth / fx) * (x - cx)
 #     world_y = (depth / fy) * (y - cy)
 #     world_z = depth
