@@ -6,6 +6,7 @@ import os
 import time
 import itertools
 import argparse
+import struct
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -17,8 +18,10 @@ import rospy
 import tf2_ros
 import message_filters
 
-from sensor_msgs.msg import Image, CameraInfo
-from geometry_msgs.msg import Point, TransformStamped
+from std_msgs.msg import Header
+from sensor_msgs import point_cloud2
+from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointCloud, PointField
+from geometry_msgs.msg import Point, TransformStamped, Point32
 from image_geometry import PinholeCameraModel
 
 
@@ -27,7 +30,7 @@ class BBoxAnnotator():
     A class for automatically labeling bounding boxes given a single bounding box
     """
 
-    def __init__(self, image_dim=(720, 1280), show_cv=False, save_images=False):
+    def __init__(self, image_dim=(720, 1280), show_cv=False, save_images=False, publish_pointcloud=False):
         """
         Initialize BBoxAnnotator module
         """
@@ -60,27 +63,32 @@ class BBoxAnnotator():
         # storage for 3D bounding prisms in the scene
         self.objects = []
 
+        self.publish_pointcloud = publish_pointcloud
+
         # count number of callback invocations
         self.callback_counter = 0
 
-        self.init_ros_subscribers()
+        # spin up ROS
+        self.init_ros_pub_and_sub()
         self.tf_buffer = self.init_tf_buffer()
         rospy.spin()
 
-    def init_ros_subscribers(self) -> None:
+    def init_ros_pub_and_sub(self) -> None:
         """
         Initialize ROS nodes, register subscribers
         """
         camera_info_sub = message_filters.Subscriber(
-            '/camera_1/aligned_depth_to_color/camera_info', CameraInfo, queue_size=1)
+            '/camera_1/aligned_depth_to_color/camera_info', CameraInfo, queue_size=10)
         color_image_sub = message_filters.Subscriber(
-            '/camera_1/color/image_raw', Image, queue_size=1)
+            '/camera_1/color/image_raw', Image, queue_size=10)
         depth_image_sub = message_filters.Subscriber(
-            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=1)
+            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=10)
 
         ts = message_filters.TimeSynchronizer(
             [camera_info_sub, color_image_sub, depth_image_sub], 1)
         ts.registerCallback(self.callback)
+
+        self.pointcloud_pub = rospy.Publisher('/thomas/pointcloud2', PointCloud2, queue_size=10)
 
     def init_tf_buffer(self):
         """
@@ -144,7 +152,7 @@ class BBoxAnnotator():
         """
         return (
             self.cv_bridge.imgmsg_to_cv2(
-                color_img)[:, :, ::-1].astype('uint8'),    # rgb->bgr
+                color_img, "bgr8"),
             self.cv_bridge.imgmsg_to_cv2(depth_img, "32FC1")
         )
 
@@ -232,6 +240,7 @@ class BBoxAnnotator():
                               cv2.WND_PROP_TOPMOST, 1)
         cv2.waitKey(1)
 
+
     def callback(self, camera_info: CameraInfo, color_img: Image, depth_img: Image):
         """
         Hook function for info published to camera topics
@@ -256,6 +265,10 @@ class BBoxAnnotator():
             # init_camera_to_camera_tf = np.linalg.inv(self.init_camera_tf ) @ base_to_camera_tf
             projection = self.compute_projection(init_camera_to_camera_tf)
 
+        # create/publish a pointcloud
+        if self.publish_pointcloud:
+            self.create_pointcloud(color_img.header, color_img=color_img_cv, depth_img=depth_img_cv)
+
         if self.show_cv:
             self.display_windows(color_img_cv, projection)
 
@@ -265,10 +278,47 @@ class BBoxAnnotator():
 
         self.callback_counter += 1
 
+    def create_pointcloud(self, header:Header, color_img:np.array, depth_img:np.array) -> None:
+        """
+        Creates and publishes a pointcloud from provided rgb and depth images
+        """
+
+        fx_inv, fy_inv = 1.0/self.fx, 1.0/self.fy
+
+        points = []
+        for i in range(msg.width):
+            for j in range(msg.height):
+                if i % 5 == 0 and j % 5 == 0:
+
+                    depth = depth_img[j, i] * 0.001
+                    color = color_img[j, i]
+
+                    x = depth * ((i - self.cx)) * fx_inv
+                    y = depth * ((j - self.cy)) * fy_inv
+                    z = depth
+                    pt = [x, y, z, 0]
+
+                    b, g, r, a = color[0], color[1], color[2], 255
+                    rgb = struct.unpack('I', struct.pack('BBBB', b, g, r, a))[0]
+                    pt[3] = rgb
+                    points.append(pt)
+
+        fields = [
+            PointField('x', 0, PointField.FLOAT32, 1),
+            PointField('y', 4, PointField.FLOAT32, 1),
+            PointField('z', 8, PointField.FLOAT32, 1),
+            PointField('rgb', 12, PointField.UINT32, 1),            
+        ]
+        pc2 = point_cloud2.create_cloud(header, fields, points)
+        self.pointcloud_pub.publish(pc2)
+
+
 
 def main():
     BBoxAnnotator(
-        show_cv=True, save_images=False
+        show_cv=True, 
+        save_images=False,
+        publish_pointcloud=True
     )
 
 
@@ -276,205 +326,3 @@ if __name__ == '__main__':
     main()
 
 
-# general idea
-# - we have a transform from the base link to depth camera
-# - our bounding box gives us a rectangle on the depth image
-#
-# scan depth image rectangle, get depth max and depth min
-# construct an approx 3d rectangular prism, using depth min/max
-#
-# now, at some rate:
-# - check the base->camera transform
-# - use these as a change of camera
-# - use opencv to compute projection back to 2D
-# - use convex hull as bbox
-#
-
-# need some sort of initial callback to use the initial bbox to
-# render the real world objects.
-# then regular callback
-
-
-# GENERAL ALGORITHM
-#
-# phase 1: initial callback
-# here, we have a list of human-annotated bounding boxes on the first
-# frame of video data. we need to get transform data to get the camera
-# location and then use depth data to turn those 2d bounding boxes into
-# 3d bounding cubes
-
-
-# NOTES
-# any rosbag opening takes a long time after `roscore` has been shut down, cache
-# seems to reset. overall weird behavior with reopening and such
-#
-# /tf has data from base_link to end_effector_link
-# /tf_static has data for end_effector_link to camera stuff
-
-# assume schema below
-# "boundingBoxes": [
-# {
-#     "height": 2832,
-#     "label": "bird",
-#     "left": 681,
-#     "top": 599,
-#     "width": 1364
-# }
-
-
-# OLD CODE
-
-
-# def create_3d_world(self, camera_info: CameraInfo, color_img_cv: np.array, depth_img_cv: np.array) -> None:
-#     """
-#     Use human-annotated bboxes to render 3d bounding prisms of objects
-#     """
-#     depth_map = depth_img_cv / 1000.    # mm -> m
-#     for bbox in self.given_bboxes:
-#         height, width = bbox['height'], bbox['width']
-#         left, top = bbox['left'], bbox['top']
-
-#         # find the min/max depth values in the region to build bounding cube
-#         depth_region = depth_map[top:top+height, left:left+width].flatten()
-#         trunc_depth_region = depth_region[np.where(
-#             (depth_region > 0.1) & (depth_region < 1.0))]
-#         min_depth, max_depth = np.min(
-#             trunc_depth_region), np.max(trunc_depth_region)
-
-#         # generate 3D mesh of a cube based on bbox and depth data
-#         cube_mesh = self.generate_cube_mesh(
-#             top, left, height, width, min_depth, max_depth, camera_info)
-#         self.objects.append(cube_mesh)
-
-#     # now that we have our objects, world has been created
-#     self.world_created = True
-
-
-# def generate_cube_mesh(self, top: int, left: int, height: int, width: int, min_depth: float, max_depth: float, camera_info: CameraInfo):
-#     """
-#     Generates a 3D mesh cube to represent a 3D bounding cube
-#     TODO: Replace with parallelizable np method
-#     """
-#     x_1, y_1, z_1 = self.pixel_to_world(left, top, min_depth, camera_info)
-#     x_2, y_2, z_2 = self.pixel_to_world(
-#         left+width, top+height, max_depth, camera_info)
-
-#     x_space = list(np.linspace(x_1, x_2, 10))
-#     y_space = list(np.linspace(y_1, y_2, 10))
-#     z_space = list(np.linspace(z_1, z_2, 10))
-
-#     points = []
-#     for (xi, yj, zk) in itertools.product(x_space, y_space, z_space):
-#         points.append([xi, yj, zk])
-
-#     return points
-
-# def pixel_to_world(self, x, y, depth, camera_info):
-#     """
-#     Converts a pixel coordinate (x,y) into real world (x,y,z) space
-#     """
-#     fx, fy, cx, cy = self.register_camera_info(camera_info)
-#     world_x = (depth / fx) * (x - cx)
-#     world_y = (depth / fy) * (y - cy)
-#     world_z = depth
-#     return world_x, world_y, world_z
-
-# DATA_PATH = "../data/feeding_infra_training_data/experiment_1.bag"
-# TOPICS = [
-#     '/camera_1/color/image_raw',
-#     '/camera_1/aligned_depth_to_color/image_raw',
-#     '/tf'
-# ]
-
-
-# def load_bagfile() -> rosbag.Bag:
-#     """
-#     Loads a bagfile from DATA_PATH with a given bagfile_name
-#     """
-#     bag = rosbag.Bag(DATA_PATH)
-#     print("Loaded bag {}".format(DATA_PATH))
-#     topics = bag.get_type_and_topic_info()[1].keys()
-#     print("Available Bag Topics: {}".format(topics))
-#     print()
-
-#     return bag
-
-
-# def get_bag_messages(bag: rosbag.Bag) -> Generator:
-#     """
-#     Return a generator of bag messages from the bagfile
-#     """
-#     bag_messages = bag.read_messages(topics=TOPICS)
-#     return bag_messages
-
-
-# def create_named_windows() -> None:
-#     """
-#     Creates named CV2 windows based on `TOPICS`
-#     """
-#     x, y = 25, 25
-#     for t in TOPICS:
-#         if 'camera' in t:
-#             cv2.namedWindow(t, cv2.WINDOW_NORMAL)
-#             cv2.resizeWindow(t, 360, 360)
-#             cv2.moveWindow(t, x, y)
-#             y += 500
-
-
-# def parse_image(image_message, topic, bridge) -> None:
-#     """
-#     Uses a CV Bridge to parse a ROS image message
-#     """
-#     # image_bytes = image_message.data
-#     # enc, step = image_message.encoding, image_message.step
-#     # h, w = image_message.height, image_message.width
-#     # print(h, w, enc, step)
-
-#     cv2_image = bridge.imgmsg_to_cv2(image_message).astype('uint8')
-#     if 'depth' not in topic:
-#         cv2_image = cv2.cvtColor(cv2_image, cv2.COLOR_RGB2BGR)
-#     else:
-#         # _, cv2_image = cv2.threshold(cv2_image, 127,255,cv2.THRESH_TOZERO)
-#         pass
-#     cv2.imshow(topic, cv2_image)
-#     cv2.waitKey(2)
-
-
-# def generate_animation(bag_messages:Generator) -> None:
-#     """
-#     Creates an animation of the bagfile
-#     """
-#     bridge = cv_bridge.CvBridge()
-#     n_messgaes_to_show = 5000
-#     i = 0
-#     while i < n_messgaes_to_show:
-#         message = next(bag_messages)
-#         message_data, topic = message.message, message.topic
-
-#         if 'camera' in topic:
-#             parse_image(message_data, topic, bridge)
-#         else:
-#             msg = message.message
-#             print(msg)
-#             # transforms = msg.transforms
-#             # print([(t.header.frame_id, t.child_frame_id) for t in transforms])
-#             # print(type(message.message.transforms[0]))
-
-#         i += 1
-
-# def main():
-#     """
-#     Run the script
-#     """
-#     start_time = time.time()
-
-#     # load our selected bagfile
-#     bag = load_bagfile()
-#     bag_messages = get_bag_messages(bag)
-
-#     # run openCV
-#     create_named_windows()
-#     generate_animation(bag_messages)
-
-#     end_time = time.time()
-#     print('Script complete, total time: {}'.format(end_time-start_time))
