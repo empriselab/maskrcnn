@@ -30,7 +30,7 @@ class BBoxAnnotator():
     A class for automatically labeling bounding boxes given a single bounding box
     """
 
-    def __init__(self, image_dim=(720, 1280), show_cv=False, save_images=False, publish_pointcloud=False):
+    def __init__(self, image_dim=(720, 1280), show_cv=False, save_images=False, pointcloud=None):
         """
         Initialize BBoxAnnotator module
         """
@@ -63,7 +63,7 @@ class BBoxAnnotator():
         # storage for 3D bounding prisms in the scene
         self.objects = []
 
-        self.publish_pointcloud = publish_pointcloud
+        self.pointcloud = pointcloud
 
         # count number of callback invocations
         self.callback_counter = 0
@@ -88,7 +88,8 @@ class BBoxAnnotator():
             [camera_info_sub, color_image_sub, depth_image_sub], 1)
         ts.registerCallback(self.callback)
 
-        self.pointcloud_pub = rospy.Publisher('/thomas/pointcloud2', PointCloud2, queue_size=10)
+        self.pointcloud_pub = rospy.Publisher(
+            '/thomas/pointcloud2', PointCloud2, queue_size=10)
 
     def init_tf_buffer(self):
         """
@@ -98,13 +99,13 @@ class BBoxAnnotator():
         tf2_ros.TransformListener(tf_buffer)
         return tf_buffer
 
-    def create_named_windows(self, height:int, width:int) -> None:
+    def create_named_windows(self, height: int, width: int) -> None:
         """
         Creates named CV2 windows
         """
         x, y = 25, 25
         topics = [
-            '/camera_1/color/image_raw', 
+            '/camera_1/color/image_raw',
         ]
         for t in topics:
             cv2.namedWindow(t, cv2.WINDOW_NORMAL)
@@ -136,14 +137,16 @@ class BBoxAnnotator():
         self.cx = camera_info.K[2]
         self.cy = camera_info.K[5]
 
-    def transform_to_mat(self, transform:TransformStamped) -> np.array:
+    def transform_to_mat(self, transform: TransformStamped) -> np.array:
         """
         Create a homogenous transformation matrix from a transform message
         """
-        R = np.zeros((4,4))
-        R[:3,:3] = Rotation.from_quat([transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]).as_matrix()
-        R[:3,3] = np.array([transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]).reshape(1,3)
-        R[3,3] = 1
+        R = np.zeros((4, 4))
+        R[:3, :3] = Rotation.from_quat([transform.transform.rotation.x, transform.transform.rotation.y,
+                                       transform.transform.rotation.z, transform.transform.rotation.w]).as_matrix()
+        R[:3, 3] = np.array([transform.transform.translation.x, transform.transform.translation.y,
+                            transform.transform.translation.z]).reshape(1, 3)
+        R[3, 3] = 1
         return R
 
     def convert_images(self, color_img: Image, depth_img: Image):
@@ -164,9 +167,9 @@ class BBoxAnnotator():
         blank = np.zeros((self.height, self.width))
         cv2.circle(blank, (694, 165), 47, 1, thickness=-1)    # manual config
         seg = np.where(blank == 1)
-        return seg 
+        return seg
 
-    def vec_pixel_to_world(self, mat:np.array, depth:np.array):
+    def vec_pixel_to_world(self, mat: np.array, depth: np.array):
         """
         A vectorized version of the above. `mat` represents a list of x,y,depth points
         """
@@ -176,7 +179,7 @@ class BBoxAnnotator():
 
         world[:, 0] = (depth / self.fx) * (mat[:, 0] - self.cx)    # world x
         world[:, 1] = (depth / self.fy) * (mat[:, 1] - self.cy)    # world y
-        world[:, 2] = depth                                        # world z         
+        world[:, 2] = depth                                        # world z
 
         return world
 
@@ -188,13 +191,14 @@ class BBoxAnnotator():
         depth_values = depth_map[self.segmentation]
 
         # here row values correspond to y, column values correspond to x so we must invert
-        reshape_coords = np.array(list(zip(self.segmentation[1], self.segmentation[0])))   
+        reshape_coords = np.array(
+            list(zip(self.segmentation[1], self.segmentation[0])))
         world = self.vec_pixel_to_world(reshape_coords, depth_values)
         self.objects.append(world)
 
         self.world_created = True
 
-    def compute_projection(self, transform_mat:np.array=None) -> np.array:
+    def compute_projection(self, transform_mat: np.array = None) -> np.array:
         """
         Placeholder fn for rendering 3D -> 2D projections
         """
@@ -202,7 +206,7 @@ class BBoxAnnotator():
             rotation_vec, _ = cv2.Rodrigues(np.array([0.0, 0.0, 0.0]))
             translation_vec = np.array([0.0, 0.0, 0.0])
         else:
-            rotation_vec, _ = cv2.Rodrigues(transform_mat[:3, :3]) 
+            rotation_vec, _ = cv2.Rodrigues(transform_mat[:3, :3])
             translation_vec = transform_mat[0:3, -1]
 
         camera_mat = np.array([
@@ -222,24 +226,27 @@ class BBoxAnnotator():
 
     def display_windows(self, color_img: np.array, projection: np.array) -> None:
         """
-        Helper fn to display all OpenCV windows
+        Helper fn to display OpenCV window
         """
+        segmentation_image = np.copy(color_img)
         try:
             for p in projection:
-                cv2.circle(color_img, (int(p[0]), int(p[1])),
-                        1, color=(255, 0, 0), thickness=1)
+                cv2.circle(segmentation_image, (int(p[0]), int(p[1])),
+                           1, color=(255, 0, 0), thickness=1)
         except:
             pass
 
         # imshow, push to top, save if needed
-        cv2.imshow('/camera_1/color/image_raw', color_img)  
+        cv2.imshow('/camera_1/color/image_raw', segmentation_image)
         if self.save_images:
-            cv2.imwrite('../data/interim/{0:05d}.png'.format(self.callback_counter), color_img)
+            cv2.imwrite(
+                '../data/interim/{0:05d}.png'.format(self.callback_counter), segmentation_image)
 
         cv2.setWindowProperty('/camera_1/color/image_raw',
                               cv2.WND_PROP_TOPMOST, 1)
         cv2.waitKey(1)
 
+        return segmentation_image
 
     def callback(self, camera_info: CameraInfo, color_img: Image, depth_img: Image):
         """
@@ -261,16 +268,21 @@ class BBoxAnnotator():
             projection = self.compute_projection()
         else:
             # regular callback: find transform to position
-            init_camera_to_camera_tf = np.linalg.inv(base_to_camera_tf) @ self.init_camera_tf
+            init_camera_to_camera_tf = np.linalg.inv(
+                base_to_camera_tf) @ self.init_camera_tf
             # init_camera_to_camera_tf = np.linalg.inv(self.init_camera_tf ) @ base_to_camera_tf
             projection = self.compute_projection(init_camera_to_camera_tf)
 
-        # create/publish a pointcloud
-        if self.publish_pointcloud:
-            self.create_pointcloud(color_img.header, color_img=color_img_cv, depth_img=depth_img_cv)
-
         if self.show_cv:
-            self.display_windows(color_img_cv, projection)
+            segmentation_image = self.display_windows(color_img_cv, projection)
+
+        # create/publish a pointcloud
+        if self.pointcloud == "segmented":
+            self.create_pointcloud(
+                color_img, color_img=segmentation_image, depth_img=depth_img_cv)
+        elif self.pointcloud == "raw":
+            self.create_pointcloud(
+                color_img, color_img=color_img_cv, depth_img=depth_img_cv)
 
         callback_end_time = time.time()
         print("Callback Time : {}".format(
@@ -278,10 +290,11 @@ class BBoxAnnotator():
 
         self.callback_counter += 1
 
-    def create_pointcloud(self, header:Header, color_img:np.array, depth_img:np.array) -> None:
+    def create_pointcloud(self, msg, color_img: np.array, depth_img: np.array) -> None:
         """
         Creates and publishes a pointcloud from provided rgb and depth images
         """
+        header = msg.header
 
         fx_inv, fy_inv = 1.0/self.fx, 1.0/self.fy
 
@@ -299,7 +312,8 @@ class BBoxAnnotator():
                     pt = [x, y, z, 0]
 
                     b, g, r, a = color[0], color[1], color[2], 255
-                    rgb = struct.unpack('I', struct.pack('BBBB', b, g, r, a))[0]
+                    rgb = struct.unpack(
+                        'I', struct.pack('BBBB', b, g, r, a))[0]
                     pt[3] = rgb
                     points.append(pt)
 
@@ -307,22 +321,19 @@ class BBoxAnnotator():
             PointField('x', 0, PointField.FLOAT32, 1),
             PointField('y', 4, PointField.FLOAT32, 1),
             PointField('z', 8, PointField.FLOAT32, 1),
-            PointField('rgb', 12, PointField.UINT32, 1),            
+            PointField('rgb', 12, PointField.UINT32, 1),
         ]
         pc2 = point_cloud2.create_cloud(header, fields, points)
         self.pointcloud_pub.publish(pc2)
 
 
-
 def main():
     BBoxAnnotator(
-        show_cv=True, 
+        show_cv=True,
         save_images=False,
-        publish_pointcloud=True
+        pointcloud="raw"    # options "segmented", "raw", None
     )
 
 
 if __name__ == '__main__':
     main()
-
-
