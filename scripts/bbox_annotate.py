@@ -63,6 +63,9 @@ class BBoxAnnotator():
         # storage for 3D bounding prisms in the scene
         self.objects = []
 
+        # a binary image that masks the forque in the image
+        self.fork_mask = self.create_fork_mask()
+
         self.pointcloud = pointcloud
 
         # count number of callback invocations
@@ -71,6 +74,7 @@ class BBoxAnnotator():
         # spin up ROS
         self.tf_buffer = self.init_tf_buffer()
         self.init_ros_pub_and_sub()
+        
         rospy.spin()
 
     def init_ros_pub_and_sub(self) -> None:
@@ -100,6 +104,16 @@ class BBoxAnnotator():
 
         # time.sleep(0.5)
         return tf_buffer
+
+    def create_fork_mask(self):
+        white = np.ones((self.height, self.width))
+        fork_outline = np.array([
+            [714, 717], [707, 640], [733, 636], [724, 534],
+            [778, 534], [785, 567], [815, 577], [865, 637],
+            [987, 635], [988, 657], [1059, 718]
+        ])
+        cv2.fillPoly(white, [fork_outline], 0)
+        return white
 
     def create_named_windows(self, height: int, width: int) -> None:
         """
@@ -194,43 +208,6 @@ class BBoxAnnotator():
             self.cv_bridge.imgmsg_to_cv2(depth_img, "32FC1")
         )
 
-    def tmp_get_segmentation(self):
-        """
-        TEMPORARY! gets the (x,y) pixel locations corresponding to the piece of salami
-        Will eventually use something sophisticated like a JSON file
-        """
-        # salami
-        blank = np.zeros((self.height, self.width))
-        cv2.circle(blank, (694, 165), 47, 1, thickness=-1)    # manual config
-        
-        # canteloupe
-        pts = np.array([
-            [743,194],
-            [746,226],
-            [760,239],
-            [795,232],
-            [796,188],
-            [777,171]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        # raspberry
-        pts = np.array([
-            [656,257],
-            [653,273],
-            [664,283],
-            [683,282],
-            [697,274],
-            [702,262],
-            [696,246],
-            [686,236],
-            [671,239]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        seg = np.where(blank == 1)
-        return seg
-
     def vec_pixel_to_world(self, mat: np.array, depth: np.array):
         """
         A vectorized version of the above. `mat` represents a list of x,y,depth points
@@ -262,7 +239,7 @@ class BBoxAnnotator():
 
     def compute_projection(self, transform_mat: np.array = None) -> np.array:
         """
-        Placeholder fn for rendering 3D -> 2D projections
+        Compute projections from 3D back to 2D based on a transformation matrix
         """
         if transform_mat is None:
             rotation_vec, _ = cv2.Rodrigues(np.array([0.0, 0.0, 0.0]))
@@ -286,32 +263,42 @@ class BBoxAnnotator():
         )
         return projection[:, 0, :]    # ignore weird y coord
 
+    def create_projection_image(self, color_img:np.array, projection:np.array):
+        """
+        Create a new image with our projection overlayed on top 
+        """
+        # bound the projection to our width and height
+        canvas = np.zeros((self.height, self.width))
+        bounded_projection = projection[ 
+                np.logical_and(np.abs(projection[:,0])<self.width, np.abs(projection[:,1])<self.height)
+            ]
+        canvas[(bounded_projection[:,1].astype('int'), bounded_projection[:,0].astype('int'))] = 1
+
+        # mask our projection coordinates with the fork mask
+        masked_projection = cv2.bitwise_and(canvas, self.fork_mask)
+        valid_projection = np.where(masked_projection == 1)
+
+        segmentation_image = np.copy(color_img)
+        segmentation_image[valid_projection] = (255,0,0)
+
+        return cv2.addWeighted(segmentation_image, 0.5, color_img, 0.5, 1.0)
+
+
     def display_windows(self, color_img: np.array, projection: np.array) -> None:
         """
         Helper fn to display OpenCV window. Returns an image with all modifications made
         """
-        segmentation_image = np.copy(color_img)
-        canvas = np.copy(segmentation_image)#np.zeros((self.height, self.width, 3), dtype='uint8')
-
-        # vectorize projection
-        try:
-            valid_projection = projection[ 
-                np.logical_and(projection[:,0]<self.width, projection[:,1]<self.height)
-            ]
-            canvas[(valid_projection[:,1].astype('int'), valid_projection[:,0].astype('int'))] = (255,0,0)
-        except:
-            pass
-        res = cv2.addWeighted(segmentation_image, 0.5, canvas, 0.5, 1.0)
-
+        final_image = self.create_projection_image(color_img, projection)
+        
         # imshow, push to top, save if needed
-        cv2.imshow('/camera_1/color/image_raw', res)
+        cv2.imshow('/camera_1/color/image_raw', final_image)
         if self.save_images:
             cv2.imwrite(
-                '../data/interim/{0:05d}.png'.format(self.callback_counter), segmentation_image)
+                '../data/interim/{0:05d}.png'.format(self.callback_counter), final_image)
 
         cv2.waitKey(1)
 
-        return segmentation_image
+        return final_image
 
     def callback(self, camera_info: CameraInfo, color_img: Image, depth_img: Image):
         """
@@ -403,6 +390,123 @@ class BBoxAnnotator():
         ]
         pc2 = point_cloud2.create_cloud(header, fields, points)
         self.pointcloud_pub.publish(pc2)
+
+    def tmp_get_segmentation(self):
+        """
+        TEMPORARY! gets the (x,y) pixel locations corresponding to the piece of salami
+        Will eventually use something sophisticated like a JSON file
+        """
+        # salami
+        blank = np.zeros((self.height, self.width))
+        cv2.circle(blank, (694, 165), 47, 1, thickness=-1)    # manual config
+        
+        # canteloupe
+        pts = np.array([
+            [743,194],
+            [746,226],
+            [760,239],
+            [795,232],
+            [796,188],
+            [777,171]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # raspberry
+        pts = np.array([
+            [656,257],
+            [653,273],
+            [664,283],
+            [683,282],
+            [697,274],
+            [702,262],
+            [696,246],
+            [686,236],
+            [671,239]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # green pepper 1
+        pts = np.array([
+            [555,126],
+            [563,178],
+            [621,187],
+            [638,133],
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # green pepper 2
+        pts = np.array([
+            [596,209],
+            [573,250],
+            [571,287],
+            [625,289],
+            [637,218]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # green pepper 3
+        pts = np.array([
+            [648,310],
+            [615,370],
+            [682,377]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # raspberry 2
+        pts = np.array([
+            [512,242],
+            [515,262],
+            [535,265],
+            [547,254],
+            [539,228],
+            [523,230]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # avocado 1
+        pts = np.array([
+            [517,324],
+            [522,345],
+            [537,366],
+            [566,374],
+            [588,372],
+            [584,382],
+            [586,328],
+            [569,307],
+            [560,313],
+            [540,311],
+            [526,303],
+            [536,328]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # canteloupe 2
+        pts = np.array([
+            [695,343],
+            [720,398],
+            [766,386],
+            [744,337],
+            [710,344]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # avocado 2
+        pts = np.array([
+            [733,295],
+            [747,313],
+            [802,309],
+            [821,289],
+            [784,273],
+            [747,269],
+            [761,280],
+            [782,281],
+            [779,289],
+            [752,289],
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        seg = np.where(blank == 1)
+        return seg
 
 
 def main():
