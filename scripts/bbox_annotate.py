@@ -20,7 +20,7 @@ import message_filters
 
 from std_msgs.msg import Header
 from sensor_msgs import point_cloud2
-from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointCloud, PointField
+from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointCloud, PointField, JointState
 from geometry_msgs.msg import Point, TransformStamped, Point32
 from image_geometry import PinholeCameraModel
 
@@ -69,8 +69,8 @@ class BBoxAnnotator():
         self.callback_counter = 0
 
         # spin up ROS
-        self.init_ros_pub_and_sub()
         self.tf_buffer = self.init_tf_buffer()
+        self.init_ros_pub_and_sub()
         rospy.spin()
 
     def init_ros_pub_and_sub(self) -> None:
@@ -78,14 +78,14 @@ class BBoxAnnotator():
         Initialize ROS nodes, register subscribers
         """
         camera_info_sub = message_filters.Subscriber(
-            '/camera_1/aligned_depth_to_color/camera_info', CameraInfo, queue_size=10)
+            '/camera_1/color/camera_info', CameraInfo, queue_size=1000)
         color_image_sub = message_filters.Subscriber(
-            '/camera_1/color/image_raw', Image, queue_size=10)
+            '/camera_1/color/image_raw', Image, queue_size=1000)
         depth_image_sub = message_filters.Subscriber(
-            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=10)
+            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=1000)
 
         ts = message_filters.TimeSynchronizer(
-            [camera_info_sub, color_image_sub, depth_image_sub], 1)
+            [camera_info_sub, color_image_sub, depth_image_sub], 1000)
         ts.registerCallback(self.callback)
 
         self.pointcloud_pub = rospy.Publisher(
@@ -95,8 +95,10 @@ class BBoxAnnotator():
         """
         Initialize buffer to listen to /tf and /tf_static
         """
-        tf_buffer = tf2_ros.Buffer()
+        tf_buffer = tf2_ros.Buffer(rospy.Duration(30.0))
         tf2_ros.TransformListener(tf_buffer)
+
+        # time.sleep(0.5)
         return tf_buffer
 
     def create_named_windows(self, height: int, width: int) -> None:
@@ -113,20 +115,53 @@ class BBoxAnnotator():
             cv2.moveWindow(t, x, y)
             y += 360
 
-    def get_base_to_camera_tf(self):
+    def get_base_to_camera_tf(self, stamp):
         """
         Get transform from base_link to camera
         """
-        rate = rospy.Rate(1000.0)
+        secs, nsecs = stamp.secs, stamp.nsecs
+
+        rate = rospy.Rate(100.0)
+        t0 = time.time()
         while not rospy.is_shutdown():
             try:
                 transform = self.tf_buffer.lookup_transform(
-                    'base_link',  'camera_1_color_optical_frame', rospy.Time())
+                    'base_link',  'end_effector_link', rospy.Time(secs=secs, nsecs=nsecs))
+                # transform = self.tf_buffer.lookup_transform(
+                    # 'base_link',  'camera_1_color_optical_frame', rospy.Time())
                 break
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 rate.sleep()
+                # print("Base to ee: ",secs, nsecs, e)
                 continue
-        return transform
+        
+        while not rospy.is_shutdown():
+            try:
+                camera_link_to_color_optical_transform = self.tf_buffer.lookup_transform(
+                    'camera_1_link',  'camera_1_color_optical_frame', rospy.Time(secs=secs, nsecs=nsecs))
+                break
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                rate.sleep()
+                print("camera links: ", secs, nsecs, e)
+                continue
+
+        base_to_ee = self.transform_to_mat(transform)
+        
+        end_effector_to_camera = np.zeros((4, 4))
+        end_effector_to_camera[:3, :3] = Rotation.from_quat([0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
+        end_effector_to_camera[:3, 3] = np.array([0.016, 0.060, 0.030])
+        end_effector_to_camera[3, 3] = 1
+
+        # end_effector_to_camera[:3, 3] = np.array([0.0185, 0.058, 0.034])    # RAJAT VALS
+
+        # # old camera calibration params
+        # end_effector_to_camera[:3, :3] = Rotation.from_quat([0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
+
+        camera_link_to_color_optical = self.transform_to_mat(camera_link_to_color_optical_transform)
+
+        return base_to_ee @ end_effector_to_camera @ camera_link_to_color_optical
+
+        # return self.transform_to_mat(transform)
 
     def register_camera_info(self, camera_info: CameraInfo):
         """
@@ -145,7 +180,7 @@ class BBoxAnnotator():
         R[:3, :3] = Rotation.from_quat([transform.transform.rotation.x, transform.transform.rotation.y,
                                        transform.transform.rotation.z, transform.transform.rotation.w]).as_matrix()
         R[:3, 3] = np.array([transform.transform.translation.x, transform.transform.translation.y,
-                            transform.transform.translation.z]).reshape(1, 3)
+                            transform.transform.translation.z])
         R[3, 3] = 1
         return R
 
@@ -164,8 +199,35 @@ class BBoxAnnotator():
         TEMPORARY! gets the (x,y) pixel locations corresponding to the piece of salami
         Will eventually use something sophisticated like a JSON file
         """
+        # salami
         blank = np.zeros((self.height, self.width))
         cv2.circle(blank, (694, 165), 47, 1, thickness=-1)    # manual config
+        
+        # canteloupe
+        pts = np.array([
+            [743,194],
+            [746,226],
+            [760,239],
+            [795,232],
+            [796,188],
+            [777,171]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
+        # raspberry
+        pts = np.array([
+            [656,257],
+            [653,273],
+            [664,283],
+            [683,282],
+            [697,274],
+            [702,262],
+            [696,246],
+            [686,236],
+            [671,239]
+        ])
+        cv2.fillPoly(blank, [pts], 1)
+
         seg = np.where(blank == 1)
         return seg
 
@@ -226,24 +288,27 @@ class BBoxAnnotator():
 
     def display_windows(self, color_img: np.array, projection: np.array) -> None:
         """
-        Helper fn to display OpenCV window
+        Helper fn to display OpenCV window. Returns an image with all modifications made
         """
         segmentation_image = np.copy(color_img)
+        canvas = np.copy(segmentation_image)#np.zeros((self.height, self.width, 3), dtype='uint8')
+
+        # vectorize projection
         try:
-            for p in projection:
-                cv2.circle(segmentation_image, (int(p[0]), int(p[1])),
-                           1, color=(255, 0, 0), thickness=1)
+            valid_projection = projection[ 
+                np.logical_and(projection[:,0]<self.width, projection[:,1]<self.height)
+            ]
+            canvas[(valid_projection[:,1].astype('int'), valid_projection[:,0].astype('int'))] = (255,0,0)
         except:
             pass
+        res = cv2.addWeighted(segmentation_image, 0.5, canvas, 0.5, 1.0)
 
         # imshow, push to top, save if needed
-        cv2.imshow('/camera_1/color/image_raw', segmentation_image)
+        cv2.imshow('/camera_1/color/image_raw', res)
         if self.save_images:
             cv2.imwrite(
                 '../data/interim/{0:05d}.png'.format(self.callback_counter), segmentation_image)
 
-        cv2.setWindowProperty('/camera_1/color/image_raw',
-                              cv2.WND_PROP_TOPMOST, 1)
         cv2.waitKey(1)
 
         return segmentation_image
@@ -254,11 +319,25 @@ class BBoxAnnotator():
         """
         callback_start_time = time.time()
 
+        # populate tf buffer for first 50 callbacks
+        if self.callback_counter < 50:
+            self.callback_counter += 1
+            return
+
+        # if camera_info.header.stamp.nsecs != color_img.header.stamp.nsecs or color_img.header.stamp.nsecs != depth_img.header.stamp.nsecs:
+        #     print("Misaligned frames! Press [ENTER] to continue:")
+        #     lol = input()
+
+        # print("camera_info.header: ",camera_info.header.stamp.secs, camera_info.header.stamp.nsecs)
+        # print("color_img.header: ",color_img.header.stamp.secs, color_img.header.stamp.nsecs)
+        # print("depth_img.header: ",depth_img.header.stamp.secs, depth_img.header.stamp.nsecs)
+        # print("joint_state.header: ",joint_state.header.stamp.secs, joint_state.header.stamp.nsecs)
+
         # convert from ROS msgs to np arrays
         color_img_cv, depth_img_cv = self.convert_images(color_img, depth_img)
 
         # get current base to camera transform
-        base_to_camera_tf = self.transform_to_mat(self.get_base_to_camera_tf())
+        base_to_camera_tf = self.get_base_to_camera_tf(camera_info.header.stamp)
 
         if not self.world_created:
             # initial callback: store current tf, create 3d world
@@ -270,7 +349,6 @@ class BBoxAnnotator():
             # regular callback: find transform to position
             init_camera_to_camera_tf = np.linalg.inv(
                 base_to_camera_tf) @ self.init_camera_tf
-            # init_camera_to_camera_tf = np.linalg.inv(self.init_camera_tf ) @ base_to_camera_tf
             projection = self.compute_projection(init_camera_to_camera_tf)
 
         if self.show_cv:
@@ -331,7 +409,7 @@ def main():
     BBoxAnnotator(
         show_cv=True,
         save_images=False,
-        pointcloud="raw"    # options "segmented", "raw", None
+        pointcloud=None    # options "segmented", "raw", None
     )
 
 
