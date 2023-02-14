@@ -4,8 +4,6 @@
 
 import os
 import time
-import itertools
-import argparse
 import struct
 
 import numpy as np
@@ -20,9 +18,8 @@ import message_filters
 
 from std_msgs.msg import Header
 from sensor_msgs import point_cloud2
-from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointCloud, PointField, JointState
-from geometry_msgs.msg import Point, TransformStamped, Point32
-from image_geometry import PinholeCameraModel
+from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
+from geometry_msgs.msg import TransformStamped
 
 
 class BBoxAnnotator():
@@ -43,12 +40,6 @@ class BBoxAnnotator():
         self.save_images = save_images
         if self.show_cv:
             self.create_named_windows(self.height, self.width)
-
-        # REFACTOR: USING SEMANTIC SEGMENTATION INSTEAD
-        # currently based on AWS labeling format
-        # self.given_bboxes = [
-        #     {"label": "salami", "left": 645, "width": 95, "top": 115, "height": 95}
-        # ]
 
         # placeholder for semantic segmentation, will eventually read from JSON
         # TODO: read from JSON
@@ -74,7 +65,7 @@ class BBoxAnnotator():
         # spin up ROS
         self.tf_buffer = self.init_tf_buffer()
         self.init_ros_pub_and_sub()
-        
+
         rospy.spin()
 
     def init_ros_pub_and_sub(self) -> None:
@@ -82,11 +73,11 @@ class BBoxAnnotator():
         Initialize ROS nodes, register subscribers
         """
         camera_info_sub = message_filters.Subscriber(
-            '/camera_1/color/camera_info', CameraInfo, queue_size=1000)
+            '/camera_1/color/camera_info', CameraInfo, queue_size=2)
         color_image_sub = message_filters.Subscriber(
-            '/camera_1/color/image_raw', Image, queue_size=1000)
+            '/camera_1/color/image_raw', Image, queue_size=2)
         depth_image_sub = message_filters.Subscriber(
-            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=1000)
+            '/camera_1/aligned_depth_to_color/image_raw', Image, queue_size=2)
 
         ts = message_filters.TimeSynchronizer(
             [camera_info_sub, color_image_sub, depth_image_sub], 1000)
@@ -198,7 +189,7 @@ class BBoxAnnotator():
         R[3, 3] = 1
         return R
 
-    def convert_images(self, color_img: Image, depth_img: Image):
+    def convert_images(self, color_img: Image, depth_img: Image) -> tuple:
         """
         Use a CVBridge to convert our color and depth images
         """
@@ -208,7 +199,7 @@ class BBoxAnnotator():
             self.cv_bridge.imgmsg_to_cv2(depth_img, "32FC1")
         )
 
-    def vec_pixel_to_world(self, mat: np.array, depth: np.array):
+    def vec_pixel_to_world(self, mat: np.array, depth: np.array) -> np.array:
         """
         A vectorized version of the above. `mat` represents a list of x,y,depth points
         """
@@ -219,7 +210,6 @@ class BBoxAnnotator():
         world[:, 0] = (depth / self.fx) * (mat[:, 0] - self.cx)    # world x
         world[:, 1] = (depth / self.fy) * (mat[:, 1] - self.cy)    # world y
         world[:, 2] = depth                                        # world z
-
         return world
 
     def create_3d_world(self, depth_img_cv: np.array) -> None:
@@ -233,8 +223,8 @@ class BBoxAnnotator():
         reshape_coords = np.array(
             list(zip(self.segmentation[1], self.segmentation[0])))
         world = self.vec_pixel_to_world(reshape_coords, depth_values)
-        self.objects.append(world)
 
+        self.objects.append(world)
         self.world_created = True
 
     def compute_projection(self, transform_mat: np.array = None) -> np.array:
@@ -261,7 +251,7 @@ class BBoxAnnotator():
             camera_mat,
             None
         )
-        return projection[:, 0, :]    # ignore weird y coord
+        return projection[:, 0, :]    # ignore nonexistent y coord
 
     def create_projection_image(self, color_img:np.array, projection:np.array):
         """
@@ -282,7 +272,6 @@ class BBoxAnnotator():
         segmentation_image[valid_projection] = (255,0,0)
 
         return cv2.addWeighted(segmentation_image, 0.5, color_img, 0.5, 1.0)
-
 
     def display_windows(self, color_img: np.array, projection: np.array) -> None:
         """
@@ -393,12 +382,12 @@ class BBoxAnnotator():
 
     def tmp_get_segmentation(self):
         """
-        TEMPORARY! gets the (x,y) pixel locations corresponding to the piece of salami
+        TEMPORARY! gets the (x,y) pixel locations corresponding to objects in the scene
         Will eventually use something sophisticated like a JSON file
         """
         # salami
         blank = np.zeros((self.height, self.width))
-        cv2.circle(blank, (694, 165), 47, 1, thickness=-1)    # manual config
+        cv2.circle(blank, (694, 165), 47, 1, thickness=-1) 
         
         # canteloupe
         pts = np.array([
@@ -511,6 +500,7 @@ class BBoxAnnotator():
 
 def main():
     BBoxAnnotator(
+        image_dim=(720,1280),
         show_cv=True,
         save_images=False,
         pointcloud=None    # options "segmented", "raw", None
