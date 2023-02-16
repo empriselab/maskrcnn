@@ -5,6 +5,8 @@
 import os
 import time
 import struct
+import json
+from pathlib import Path, PurePath
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -27,11 +29,15 @@ class BBoxAnnotator():
     A class for automatically labeling bounding boxes given a single bounding box
     """
 
-    def __init__(self, image_dim=(720, 1280), show_cv=False, save_images=False, pointcloud=None):
+    def __init__(self, bagfile="experiment_1.bag", image_dim=(720, 1280),
+                 show_cv=False, save_images=False, pointcloud_type=None):
         """
         Initialize BBoxAnnotator module
         """
         rospy.init_node('bbox_annotator')
+
+        # configure files
+        self.base_dir, self.segmentation_file = self.init_filesystem(bagfile)
 
         # init CV
         self.height, self.width = image_dim
@@ -50,14 +56,13 @@ class BBoxAnnotator():
 
         # False for initial callback, True otherwise
         self.world_created = False
+        self.pointcloud_type = pointcloud_type
 
         # storage for 3D bounding prisms in the scene
         self.objects = []
 
         # a binary image that masks the forque in the image
         self.fork_mask = self.create_fork_mask()
-
-        self.pointcloud = pointcloud
 
         # count number of callback invocations
         self.callback_counter = 0
@@ -67,6 +72,16 @@ class BBoxAnnotator():
         self.init_ros_pub_and_sub()
 
         rospy.spin()
+
+    def init_filesystem(self, bagfile: str):
+        """
+        Uses pathlib to get the `foodrecognition` base directory as well as the .json
+        file containing the object segmentations
+        """
+        base_dir = Path(__file__).absolute().parents[1]
+        segmentation_file_name = os.path.splitext(bagfile)[0] + ".json"
+        segmentation_file = base_dir / "data" / "segmentations" / segmentation_file_name
+        return base_dir, segmentation_file
 
     def init_ros_pub_and_sub(self) -> None:
         """
@@ -133,13 +148,13 @@ class BBoxAnnotator():
                 transform = self.tf_buffer.lookup_transform(
                     'base_link',  'end_effector_link', rospy.Time(secs=secs, nsecs=nsecs))
                 # transform = self.tf_buffer.lookup_transform(
-                    # 'base_link',  'camera_1_color_optical_frame', rospy.Time())
+                # 'base_link',  'camera_1_color_optical_frame', rospy.Time())
                 break
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 rate.sleep()
                 # print("Base to ee: ",secs, nsecs, e)
                 continue
-        
+
         while not rospy.is_shutdown():
             try:
                 camera_link_to_color_optical_transform = self.tf_buffer.lookup_transform(
@@ -151,9 +166,10 @@ class BBoxAnnotator():
                 continue
 
         base_to_ee = self.transform_to_mat(transform)
-        
+
         end_effector_to_camera = np.zeros((4, 4))
-        end_effector_to_camera[:3, :3] = Rotation.from_quat([0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
+        end_effector_to_camera[:3, :3] = Rotation.from_quat(
+            [0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
         end_effector_to_camera[:3, 3] = np.array([0.016, 0.060, 0.030])
         end_effector_to_camera[3, 3] = 1
 
@@ -162,7 +178,8 @@ class BBoxAnnotator():
         # # old camera calibration params
         # end_effector_to_camera[:3, :3] = Rotation.from_quat([0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
 
-        camera_link_to_color_optical = self.transform_to_mat(camera_link_to_color_optical_transform)
+        camera_link_to_color_optical = self.transform_to_mat(
+            camera_link_to_color_optical_transform)
 
         return base_to_ee @ end_effector_to_camera @ camera_link_to_color_optical
 
@@ -253,23 +270,25 @@ class BBoxAnnotator():
         )
         return projection[:, 0, :]    # ignore nonexistent y coord
 
-    def create_projection_image(self, color_img:np.array, projection:np.array):
+    def create_projection_image(self, color_img: np.array, projection: np.array):
         """
         Create a new image with our projection overlayed on top 
         """
         # bound the projection to our width and height
         canvas = np.zeros((self.height, self.width))
-        bounded_projection = projection[ 
-                np.logical_and(np.abs(projection[:,0])<self.width, np.abs(projection[:,1])<self.height)
-            ]
-        canvas[(bounded_projection[:,1].astype('int'), bounded_projection[:,0].astype('int'))] = 1
+        bounded_projection = projection[
+            np.logical_and(np.abs(projection[:, 0]) < self.width, np.abs(
+                projection[:, 1]) < self.height)
+        ]
+        canvas[(bounded_projection[:, 1].astype('int'),
+                bounded_projection[:, 0].astype('int'))] = 1
 
         # mask our projection coordinates with the fork mask
         masked_projection = cv2.bitwise_and(canvas, self.fork_mask)
         valid_projection = np.where(masked_projection == 1)
 
         segmentation_image = np.copy(color_img)
-        segmentation_image[valid_projection] = (255,0,0)
+        segmentation_image[valid_projection] = (255, 0, 0)
 
         return cv2.addWeighted(segmentation_image, 0.5, color_img, 0.5, 1.0)
 
@@ -278,7 +297,7 @@ class BBoxAnnotator():
         Helper fn to display OpenCV window. Returns an image with all modifications made
         """
         final_image = self.create_projection_image(color_img, projection)
-        
+
         # imshow, push to top, save if needed
         cv2.imshow('/camera_1/color/image_raw', final_image)
         if self.save_images:
@@ -313,7 +332,8 @@ class BBoxAnnotator():
         color_img_cv, depth_img_cv = self.convert_images(color_img, depth_img)
 
         # get current base to camera transform
-        base_to_camera_tf = self.get_base_to_camera_tf(camera_info.header.stamp)
+        base_to_camera_tf = self.get_base_to_camera_tf(
+            camera_info.header.stamp)
 
         if not self.world_created:
             # initial callback: store current tf, create 3d world
@@ -331,10 +351,10 @@ class BBoxAnnotator():
             segmentation_image = self.display_windows(color_img_cv, projection)
 
         # create/publish a pointcloud
-        if self.pointcloud == "segmented":
+        if self.pointcloud_type == "segmented":
             self.create_pointcloud(
                 color_img, color_img=segmentation_image, depth_img=depth_img_cv)
-        elif self.pointcloud == "raw":
+        elif self.pointcloud_type == "raw":
             self.create_pointcloud(
                 color_img, color_img=color_img_cv, depth_img=depth_img_cv)
 
@@ -382,128 +402,29 @@ class BBoxAnnotator():
 
     def tmp_get_segmentation(self):
         """
-        TEMPORARY! gets the (x,y) pixel locations corresponding to objects in the scene
-        Will eventually use something sophisticated like a JSON file
+        Creates a segementation mask of all objects in the scene
         """
-        # salami
         blank = np.zeros((self.height, self.width))
-        cv2.circle(blank, (694, 165), 47, 1, thickness=-1) 
-        
-        # canteloupe
-        pts = np.array([
-            [743,194],
-            [746,226],
-            [760,239],
-            [795,232],
-            [796,188],
-            [777,171]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
+        cv2.circle(blank, (694, 165), 47, 1, thickness=-
+                   1)         # salami ad hoc for now
 
-        # raspberry
-        pts = np.array([
-            [656,257],
-            [653,273],
-            [664,283],
-            [683,282],
-            [697,274],
-            [702,262],
-            [696,246],
-            [686,236],
-            [671,239]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
+        with open(self.segmentation_file) as f:
+            segmentations = json.load(f)['segmentations']
 
-        # green pepper 1
-        pts = np.array([
-            [555,126],
-            [563,178],
-            [621,187],
-            [638,133],
-        ])
-        cv2.fillPoly(blank, [pts], 1)
+            for seg in segmentations:
+                pts = np.array(seg['segmentation'])
+                cv2.fillPoly(blank, [pts], 1)
 
-        # green pepper 2
-        pts = np.array([
-            [596,209],
-            [573,250],
-            [571,287],
-            [625,289],
-            [637,218]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        # green pepper 3
-        pts = np.array([
-            [648,310],
-            [615,370],
-            [682,377]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        # raspberry 2
-        pts = np.array([
-            [512,242],
-            [515,262],
-            [535,265],
-            [547,254],
-            [539,228],
-            [523,230]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        # avocado 1
-        pts = np.array([
-            [517,324],
-            [522,345],
-            [537,366],
-            [566,374],
-            [588,372],
-            [584,382],
-            [586,328],
-            [569,307],
-            [560,313],
-            [540,311],
-            [526,303],
-            [536,328]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        # canteloupe 2
-        pts = np.array([
-            [695,343],
-            [720,398],
-            [766,386],
-            [744,337],
-            [710,344]
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        # avocado 2
-        pts = np.array([
-            [733,295],
-            [747,313],
-            [802,309],
-            [821,289],
-            [784,273],
-            [747,269],
-            [761,280],
-            [782,281],
-            [779,289],
-            [752,289],
-        ])
-        cv2.fillPoly(blank, [pts], 1)
-
-        seg = np.where(blank == 1)
-        return seg
+        return np.where(blank == 1)
 
 
 def main():
     BBoxAnnotator(
-        image_dim=(720,1280),
+        bagfile="experiment_1.bag",
+        image_dim=(720, 1280),
         show_cv=True,
         save_images=False,
-        pointcloud=None    # options "segmented", "raw", None
+        pointcloud_type=None    # options "segmented", "raw", None
     )
 
 
