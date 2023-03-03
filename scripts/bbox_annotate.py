@@ -3,10 +3,12 @@
 # Author: Thomas Patton (tjp93)
 
 import os
+import sys
 import time
 import struct
 import json
-from pathlib import Path, PurePath
+from pathlib import Path
+import signal
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -30,7 +32,7 @@ class BBoxAnnotator():
     """
 
     def __init__(self, bagfile="experiment_1.bag", image_dim=(720, 1280),
-                 show_cv=False, save_images=False, pointcloud_type=None):
+                 show_cv=False, save_images=False, pointcloud_type=None, save_callback_idxs=None):
         """
         Initialize BBoxAnnotator module
         """
@@ -47,8 +49,7 @@ class BBoxAnnotator():
         if self.show_cv:
             self.create_named_windows(self.height, self.width)
 
-        # placeholder for semantic segmentation, will eventually read from JSON
-        # TODO: read from JSON
+        # segmentation of the scene
         self.segmentation = self.tmp_get_segmentation()
 
         # initial base to camera transform
@@ -60,6 +61,7 @@ class BBoxAnnotator():
 
         # storage for 3D bounding prisms in the scene
         self.objects = []
+        self.save_callback_idxs = save_callback_idxs
 
         # a binary image that masks the forque in the image
         self.fork_mask = self.create_fork_mask()
@@ -71,6 +73,10 @@ class BBoxAnnotator():
         self.tf_buffer = self.init_tf_buffer()
         self.init_ros_pub_and_sub()
 
+    def run(self):
+        """
+        Run the annotator
+        """
         rospy.spin()
 
     def init_filesystem(self, bagfile: str):
@@ -167,14 +173,14 @@ class BBoxAnnotator():
 
         base_to_ee = self.transform_to_mat(transform)
 
+        quat = [0.50080661, 0.49902445, 0.50068027, -0.49948635]
         end_effector_to_camera = np.zeros((4, 4))
-        end_effector_to_camera[:3, :3] = Rotation.from_quat(
-            [0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
-        end_effector_to_camera[:3, 3] = np.array([0.016, 0.060, 0.030])
+        end_effector_to_camera[:3, :3] = Rotation.from_quat(quat
+            ).as_matrix()
+        end_effector_to_camera[:3, 3] = np.array([0.014, 0.060, 0.034])
         end_effector_to_camera[3, 3] = 1
 
         # end_effector_to_camera[:3, 3] = np.array([0.0185, 0.058, 0.034])    # RAJAT VALS
-
         # # old camera calibration params
         # end_effector_to_camera[:3, :3] = Rotation.from_quat([0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
 
@@ -229,20 +235,30 @@ class BBoxAnnotator():
         world[:, 2] = depth                                        # world z
         return world
 
-    def create_3d_world(self, depth_img_cv: np.array) -> None:
+    def create_3d_world(self, depth_img_cv: np.array, segmentation:bool) -> np.array:
         """
-        Use human-annotated bboxes to render 3d bounding prisms of objects
+        Use human-annotated bboxes to render 3d bounding prisms of objects. Note: segmentation
+        parameter represents the fraction of coordinates to segment. If not provided, the whole
+        depth image is converted to XYZ space which in this code is used to create XYZ.npy files.
+        For this reason, we don't append our XYZ coords to the world in this case.
         """
         depth_map = depth_img_cv / 1000.0    # mm -> m
-        depth_values = depth_map[self.segmentation]
+        if segmentation:
+            segmentation_coords = self.segmentation
+        else:
+            segmentation_coords = np.where(depth_img_cv != None)
 
         # here row values correspond to y, column values correspond to x so we must invert
+        # only add objects to world when we're not computing full depth maps
+        depth_values = depth_map[segmentation_coords]
         reshape_coords = np.array(
-            list(zip(self.segmentation[1], self.segmentation[0])))
+            list(zip(segmentation_coords[1], segmentation_coords[0])))
         world = self.vec_pixel_to_world(reshape_coords, depth_values)
-
-        self.objects.append(world)
-        self.world_created = True
+ 
+        if segmentation:
+            self.objects.append(world)
+            self.world_created = True
+        return world
 
     def compute_projection(self, transform_mat: np.array = None) -> np.array:
         """
@@ -292,6 +308,21 @@ class BBoxAnnotator():
 
         return cv2.addWeighted(segmentation_image, 0.5, color_img, 0.5, 1.0)
 
+    def save_3d_config(self, depth_img_cv:np.array, transform:np.array) -> None:
+        """
+        Saves XYZ coords and a corresponding transform as .npy files for
+        recalibration
+        """
+        xyz_coords = self.create_3d_world(depth_img_cv, segmentation=False)
+        coords_name = "xyz_coords_callback_{}.npy".format(self.callback_counter)
+        transform_name = "transform_calback_{}.npy".format(self.callback_counter)
+
+        coords_save_location = self.base_dir / "data" / "3d" / coords_name
+        transform_save_location = self.base_dir / "data" / "3d" / transform_name
+
+        np.save(coords_save_location, xyz_coords)
+        np.save(transform_save_location, transform)
+
     def display_windows(self, color_img: np.array, projection: np.array) -> None:
         """
         Helper fn to display OpenCV window. Returns an image with all modifications made
@@ -302,7 +333,7 @@ class BBoxAnnotator():
         cv2.imshow('/camera_1/color/image_raw', final_image)
         if self.save_images:
             cv2.imwrite(
-                '../data/interim/{0:05d}.png'.format(self.callback_counter), final_image)
+                '../data/video/{0:05d}.png'.format(self.callback_counter), final_image)
 
         cv2.waitKey(1)
 
@@ -339,7 +370,7 @@ class BBoxAnnotator():
             # initial callback: store current tf, create 3d world
             self.register_camera_info(camera_info)
             self.init_camera_tf = base_to_camera_tf
-            self.create_3d_world(depth_img_cv)
+            self.create_3d_world(depth_img_cv, segmentation=True)
             projection = self.compute_projection()
         else:
             # regular callback: find transform to position
@@ -358,9 +389,12 @@ class BBoxAnnotator():
             self.create_pointcloud(
                 color_img, color_img=color_img_cv, depth_img=depth_img_cv)
 
+        # save depth map if in list of indexes 
+        if self.callback_counter in self.save_callback_idxs:
+            self.save_3d_config(depth_img_cv, init_camera_to_camera_tf)
+
         callback_end_time = time.time()
-        print("Callback Time : {}".format(
-            callback_end_time - callback_start_time))
+        print("Callback {} Time : {}".format(self.callback_counter, callback_end_time - callback_start_time))
 
         self.callback_counter += 1
 
@@ -369,7 +403,6 @@ class BBoxAnnotator():
         Creates and publishes a pointcloud from provided rgb and depth images
         """
         header = msg.header
-
         fx_inv, fy_inv = 1.0/self.fx, 1.0/self.fy
 
         points = []
@@ -390,7 +423,6 @@ class BBoxAnnotator():
                         'I', struct.pack('BBBB', b, g, r, a))[0]
                     pt[3] = rgb
                     points.append(pt)
-
         fields = [
             PointField('x', 0, PointField.FLOAT32, 1),
             PointField('y', 4, PointField.FLOAT32, 1),
@@ -410,7 +442,6 @@ class BBoxAnnotator():
 
         with open(self.segmentation_file) as f:
             segmentations = json.load(f)['segmentations']
-
             for seg in segmentations:
                 pts = np.array(seg['segmentation'])
                 cv2.fillPoly(blank, [pts], 1)
@@ -419,14 +450,15 @@ class BBoxAnnotator():
 
 
 def main():
-    BBoxAnnotator(
+    bb = BBoxAnnotator(
         bagfile="experiment_1.bag",
         image_dim=(720, 1280),
         show_cv=True,
         save_images=False,
-        pointcloud_type=None    # options "segmented", "raw", None
+        pointcloud_type=None,    # options "segmented", "raw", None
+        save_callback_idxs={51, 4100} # save depth map on these frames
     )
-
+    bb.run()
 
 if __name__ == '__main__':
     main()
