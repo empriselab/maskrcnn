@@ -13,7 +13,6 @@ import threading
 
 import numpy as np
 from scipy.spatial.transform import Rotation
-import matplotlib.pyplot as plt
 
 import cv2
 import cv_bridge
@@ -73,7 +72,10 @@ class BBoxAnnotator():
         self.callback_counter = 0
 
         # TMP STUFF FOR TEMPLATE MATCHING
-        # self.template = self.tmp_salami_bbox()
+        self.template = self.tmp_salami_bbox()
+
+        # TMP store some things
+        self.storage = {}
 
         # spin up ROS
         self.tf_buffer = self.init_tf_buffer()
@@ -110,8 +112,10 @@ class BBoxAnnotator():
             [camera_info_sub, color_image_sub, depth_image_sub], 1000)
         ts.registerCallback(self.callback)
 
-        self.pointcloud_pub = rospy.Publisher(
-            '/thomas/pointcloud2', PointCloud2, queue_size=10)
+        self.pointcloud_init_pub = rospy.Publisher(
+            '/generated/init_frame/pointcloud2', PointCloud2, queue_size=10)
+        self.pointcloud_current_pub = rospy.Publisher(
+            '/generated/current_frame/pointcloud2', PointCloud2, queue_size=10)
 
     def init_tf_buffer(self):
         """
@@ -353,25 +357,18 @@ class BBoxAnnotator():
         # convert from ROS msgs to np arrays
         color_img_cv, depth_img_cv = self.convert_images(color_img, depth_img)
 
+        # template matching stuff
         # if True:
-        #     print('here')
         #     res = cv2.matchTemplate(color_img_cv, self.template, cv2.TM_CCOEFF_NORMED)
-        #     threshold = 0.8
+        #     threshold = 0.65
         #     loc = np.where( res >= threshold)
         #     for pt in zip(*loc[::-1]):
-        #         cv2.rectangle(color_img_cv, pt, (pt[0] + self.width, pt[1] + self.height), (0,0,255), 2)
-        #     print('here2')
-        #     thresh = 0.8
-        #     print('here3')
-        #     # res = np.where(res > thresh, 1, 0)
-        #     print('here4')
-        #     cv2.imshow('/camera_1/color/image_raw',color_img_cv)
-        #     print('here5')
-        #     cv2.waitKey(1)
-        #     print('here6')
-
-
+        #         cv2.rectangle(color_img_cv, pt, (pt[0] + self.template.shape[0], pt[1] + self.template.shape[1]), (0,0,255), 1)
+        #     with image_lock:
+        #         np.copyto(global_image, color_img_cv)
+            
         #     return
+
 
 
         # get current base to camera transform
@@ -390,20 +387,29 @@ class BBoxAnnotator():
                 base_to_camera_tf) @ self.init_camera_tf
             projection = self.compute_projection(init_camera_to_camera_tf)
 
-
         # avoid threading issues between OpenCV/ROS by copying within the lock
         final_image = self.create_projection_image(color_img_cv, projection)
         with image_lock:
             np.copyto(global_image, final_image)
 
 
+        # TMP stuff for comparing pointclouds
+        if self.callback_counter == 51:
+            self.storage['msg'] = color_img 
+            self.storage['color'] = color_img_cv
+            self.storage['depth'] = depth_img_cv
+
         # create/publish a pointcloud
-        if self.pointcloud_type == "segmented":
-            self.create_pointcloud(
-                color_img, color_img=final_image, depth_img=depth_img_cv)
-        elif self.pointcloud_type == "raw":
-            self.create_pointcloud(
-                color_img, color_img=color_img_cv, depth_img=depth_img_cv)
+        init_pc = self.create_pointcloud(msg=self.storage['msg'], color_img=self.storage['color'], depth_img=self.storage['depth'])
+        # current_pc =  
+
+
+        # if self.pointcloud_type == "segmented":
+        #     self.create_pointcloud(
+        #         color_img, color_img=final_image, depth_img=depth_img_cv)
+        # elif self.pointcloud_type == "raw":
+        #     self.create_pointcloud(
+        #         color_img, color_img=color_img_cv, depth_img=depth_img_cv)
 
         # save depth map if in list of indexes 
         # if self.callback_counter in self.save_callback_idxs:
@@ -446,7 +452,7 @@ class BBoxAnnotator():
             PointField('rgb', 12, PointField.UINT32, 1),
         ]
         pc2 = point_cloud2.create_cloud(header, fields, points)
-        self.pointcloud_pub.publish(pc2)
+        # self.pointcloud_pub.publish(pc2)
 
     def tmp_get_segmentation(self):
         """
@@ -487,7 +493,9 @@ def display() -> None:
 
 
 def main():
-    annotator = BBoxAnnotator()
+    annotator = BBoxAnnotator(
+        pointcloud_type='raw'
+    )
     display_thread = threading.Thread(target=display)
 
     def signal_handler(sig, frame):
