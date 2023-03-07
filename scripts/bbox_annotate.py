@@ -9,6 +9,7 @@ import struct
 import json
 from pathlib import Path
 import signal
+import threading
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -27,83 +28,29 @@ from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
 from geometry_msgs.msg import TransformStamped
 
 
+# configure global image and locks to avoid ROS/OpenCV threading issues
+global_image = np.zeros((720,1280,3), dtype=np.uint8)
+image_lock = threading.Lock()
+quit_event = threading.Event()
+
+
 class BBoxAnnotator():
     """
     A class for automatically labeling bounding boxes given a single bounding box
     """
 
-    # def __init__(self, bagfile="experiment_1.bag", image_dim=(720, 1280),
-    #              show_cv=False, save_images=False, pointcloud_type=None, save_callback_idxs=None):
-    #     """
-    #     Initialize BBoxAnnotator module
-    #     """
-    #     rospy.init_node('bbox_annotator')
-
-    #     # configure files
-    #     self.base_dir, self.segmentation_file = self.init_filesystem(bagfile)
-
-    #     # init CV
-    #     self.height, self.width = image_dim
-    #     self.show_cv = show_cv
-    #     self.save_images = save_images
-    #     # if self.show_cv:
-    #     #     self.create_named_windows(self.height, self.width)
-
-    #     # segmentation of the scene
-    #     # self.segmentation = self.tmp_get_segmentation()
-
-    #     # initial base to camera transform
-    #     self.init_camera_tf = None
-
-    #     # False for initial callback, True otherwise
-    #     self.world_created = False
-    #     self.pointcloud_type = pointcloud_type
-
-    #     # storage for 3D bounding prisms in the scene
-    #     self.objects = []
-    #     self.save_callback_idxs = save_callback_idxs
-
-    #     # a binary image that masks the forque in the image
-    #     # self.fork_mask = self.create_fork_mask()
-    #     self.fork_mask = None
-
-    #     # count number of callback invocations
-    #     self.callback_counter = 0
-
-    #     # TMP STUFF FOR TEMPLATE MATCHING
-    #     # self.template = self.tmp_salami_bbox()
-
-    #     # spin up ROS
-    #     self.tf_buffer = self.init_tf_buffer()
-    #     self.init_ros_pub_and_sub()
-
-    def __init__(self):
-        rospy.init_node('bbox_annotator')
-
-        self.callback_counter = 0
-
-        # spin up ROS
-        self.tf_buffer = self.init_tf_buffer()
-        self.init_ros_pub_and_sub()
-
-
-
-    def init_node(self, bagfile="experiment_1.bag", image_dim=(720, 1280),
+    def __init__(self, bagfile="experiment_1.bag", image_dim=(720, 1280),
                  show_cv=False, save_images=False, pointcloud_type=None, save_callback_idxs=None):
         """
         Initialize BBoxAnnotator module
         """
-        # rospy.init_node('bbox_annotator')
+        rospy.init_node('bbox_annotator')
 
         # configure files
         self.base_dir, self.segmentation_file = self.init_filesystem(bagfile)
 
         # init CV
         self.height, self.width = image_dim
-        self.show_cv = show_cv
-        self.save_images = save_images
-        if self.show_cv:
-            self.create_named_windows(self.height, self.width)
 
         # segmentation of the scene
         self.segmentation = self.tmp_get_segmentation()
@@ -120,14 +67,17 @@ class BBoxAnnotator():
         self.save_callback_idxs = save_callback_idxs
 
         # a binary image that masks the forque in the image
-        # self.fork_mask = self.create_fork_mask()
-        self.fork_mask = None
+        self.fork_mask = self.create_fork_mask()
 
         # count number of callback invocations
-        # self.callback_counter = 0
+        self.callback_counter = 0
 
         # TMP STUFF FOR TEMPLATE MATCHING
         # self.template = self.tmp_salami_bbox()
+
+        # spin up ROS
+        self.tf_buffer = self.init_tf_buffer()
+        self.init_ros_pub_and_sub()
 
     def run(self):
         """
@@ -357,8 +307,8 @@ class BBoxAnnotator():
                 bounded_projection[:, 0].astype('int'))] = 1
 
         # mask our projection coordinates with the fork mask
-        # masked_projection = cv2.bitwise_and(canvas, self.fork_mask)
-        valid_projection = np.where(canvas == 1)
+        masked_projection = cv2.bitwise_and(canvas, self.fork_mask)
+        valid_projection = np.where(masked_projection == 1)
 
         segmentation_image = np.copy(color_img)
         segmentation_image[valid_projection] = (255, 0, 0)
@@ -380,35 +330,11 @@ class BBoxAnnotator():
         np.save(coords_save_location, xyz_coords)
         np.save(transform_save_location, transform)
 
-    def display_windows(self, color_img: np.array, projection: np.array) -> None:
-        """
-        Helper fn to display OpenCV window. Returns an image with all modifications made
-        """
-        final_image = self.create_projection_image(color_img, projection)
-
-        # imshow, push to top, save if needed
-        print('attempting to show')
-        cv2.imshow('/camera_1/color/image_raw', final_image)
-        cv2.waitKey(1)
-        print('shown')
-
-        if self.save_images:
-            cv2.imwrite(
-                '../data/video/{0:05d}.png'.format(self.callback_counter), final_image)
-
-        return final_image
-
     def callback(self, camera_info: CameraInfo, color_img: Image, depth_img: Image):
         """
         Hook function for info published to camera topics
         """
-        print(self.callback_counter)
         callback_start_time = time.time()
-
-        if self.callback_counter == 0:
-            self.init_node()
-            self.callback_counter += 1
-            return
 
         # populate tf buffer for first 50 callbacks
         if self.callback_counter < 50:
@@ -426,10 +352,6 @@ class BBoxAnnotator():
 
         # convert from ROS msgs to np arrays
         color_img_cv, depth_img_cv = self.convert_images(color_img, depth_img)
-
-        cv2.imshow('/camera_1/color/image_raw', color_img_cv)
-        cv2.waitKey(1)
-        return
 
         # if True:
         #     print('here')
@@ -452,7 +374,6 @@ class BBoxAnnotator():
         #     return
 
 
-
         # get current base to camera transform
         base_to_camera_tf = self.get_base_to_camera_tf(
             camera_info.header.stamp)
@@ -469,13 +390,17 @@ class BBoxAnnotator():
                 base_to_camera_tf) @ self.init_camera_tf
             projection = self.compute_projection(init_camera_to_camera_tf)
 
-        if self.show_cv:
-            segmentation_image = self.display_windows(color_img_cv, projection)
+
+        # avoid threading issues between OpenCV/ROS by copying within the lock
+        final_image = self.create_projection_image(color_img_cv, projection)
+        with image_lock:
+            np.copyto(global_image, final_image)
+
 
         # create/publish a pointcloud
         if self.pointcloud_type == "segmented":
             self.create_pointcloud(
-                color_img, color_img=segmentation_image, depth_img=depth_img_cv)
+                color_img, color_img=final_image, depth_img=depth_img_cv)
         elif self.pointcloud_type == "raw":
             self.create_pointcloud(
                 color_img, color_img=color_img_cv, depth_img=depth_img_cv)
@@ -546,18 +471,32 @@ class BBoxAnnotator():
         salami_seg = frame_0[114:208, 635:745]
         return salami_seg
 
+def display() -> None:
+    """
+    Display utility to decouple OpenCV image showing and ROS operations
+    """
+    local_image = np.zeros((720, 1280, 3), np.uint8)
+    while not quit_event.is_set():
+        with image_lock:
+            np.copyto(local_image, global_image)
+        try:
+            cv2.imshow('test', local_image)
+            cv2.waitKey(1)
+        except:
+            pass
 
 
 def main():
-    bb = BBoxAnnotator()
-    #     bagfile="experiment_1.bag",
-    #     image_dim=(720, 1280),
-    #     show_cv=True,
-    #     save_images=False,
-    #     pointcloud_type=None,    # options "segmented", "raw", None
-    #     save_callback_idxs={51, 4100} # save depth map on these frames
-    # )
-    bb.run()
+    annotator = BBoxAnnotator()
+    display_thread = threading.Thread(target=display)
+
+    def signal_handler(sig, frame):
+        quit_event.set()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    display_thread.start()
+    annotator.run()
 
 if __name__ == '__main__':
     main()
