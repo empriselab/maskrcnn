@@ -320,7 +320,15 @@ class BBoxAnnotator():
         Saves XYZ coords and a corresponding transform as .npy files for
         recalibration
         """
-        segmentation = np.where(depth_img_cv > -10000000)    # TODO: replace with circle conditions?
+        # save only the 3d config inside of the plate region for optimal matching
+        blank = np.zeros((self.height, self.width))
+        with open('../data/segmentations/plates.json') as f:
+            pts = np.array(json.load(f)['segmentations'][str(self.callback_counter)])
+            print(pts)
+            cv2.fillPoly(blank, [pts], 1)
+            segmentation =  np.where(blank == 1)
+
+        # extract xyz coords and save   
         xyz_coords = self.create_3d_world(depth_img_cv, segmentation=segmentation, create_world=False)
         coords_name = "xyz_coords_callback_{}.npy".format(self.callback_counter)
         transform_name = "transform_callback_{}.npy".format(self.callback_counter)
@@ -469,8 +477,8 @@ def display() -> None:
 def main():
     annotator = BBoxAnnotator(
         publish_pointcloud=False,
-        save_images=True,
-        save_callback_idxs={51, 3918}
+        save_images=False,
+        save_callback_idxs={51, 3100}
     )
     display_thread = threading.Thread(target=display)
 

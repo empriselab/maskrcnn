@@ -26,10 +26,8 @@ if __name__=="__main__":
   
     # reading the image
     # img = cv2.imread('../data/interim/00000.png', 1)
-    img = cv2.imread('../data/video/05100.png')
+    img = cv2.imread('../data/video/00051.png')
 
-    # cv2.circle(img, )
-  
     # displaying the image
     cv2.imshow('image', img)
   
