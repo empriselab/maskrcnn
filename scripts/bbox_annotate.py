@@ -39,7 +39,7 @@ class BBoxAnnotator():
     """
 
     def __init__(self, bagfile="experiment_1.bag", image_dim=(720, 1280),
-                 show_cv=False, save_images=False, pointcloud_type=None, save_callback_idxs=None):
+                 show_cv=False, save_images=False, publish_pointcloud=None, save_callback_idxs=None):
         """
         Initialize BBoxAnnotator module
         """
@@ -50,16 +50,17 @@ class BBoxAnnotator():
 
         # init CV
         self.height, self.width = image_dim
+        self.save_images = save_images
 
         # segmentation of the scene
-        self.segmentation = self.tmp_get_segmentation()
+        self.food_segmentation = self.tmp_get_segmentation()
 
         # initial base to camera transform
         self.init_camera_tf = None
 
         # False for initial callback, True otherwise
         self.world_created = False
-        self.pointcloud_type = pointcloud_type
+        self.publish_pointcloud = publish_pointcloud
 
         # storage for 3D bounding prisms in the scene
         self.objects = []
@@ -72,7 +73,7 @@ class BBoxAnnotator():
         self.callback_counter = 0
 
         # TMP STUFF FOR TEMPLATE MATCHING
-        self.template = self.tmp_salami_bbox()
+        # self.template = self.tmp_salami_bbox()
 
         # TMP store some things
         self.storage = {}
@@ -246,7 +247,7 @@ class BBoxAnnotator():
         world[:, 2] = depth                                        # world z
         return world
 
-    def create_3d_world(self, depth_img_cv: np.array, segmentation:bool) -> np.array:
+    def create_3d_world(self, depth_img_cv: np.array, segmentation:np.array, create_world:bool=False) -> np.array:
         """
         Use human-annotated bboxes to render 3d bounding prisms of objects. Note: segmentation
         parameter represents the fraction of coordinates to segment. If not provided, the whole
@@ -254,24 +255,19 @@ class BBoxAnnotator():
         For this reason, we don't append our XYZ coords to the world in this case.
         """
         depth_map = depth_img_cv / 1000.0    # mm -> m
-        if segmentation:
-            segmentation_coords = self.segmentation
-        else:
-            segmentation_coords = np.where(depth_img_cv != None)
 
         # here row values correspond to y, column values correspond to x so we must invert
-        # only add objects to world when we're not computing full depth maps
-        depth_values = depth_map[segmentation_coords]
+        depth_values = depth_map[segmentation]
         reshape_coords = np.array(
-            list(zip(segmentation_coords[1], segmentation_coords[0])))
+            list(zip(segmentation[1], segmentation[0])))
         world = self.vec_pixel_to_world(reshape_coords, depth_values)
  
-        if segmentation:
+        if create_world:
             self.objects.append(world)
             self.world_created = True
         return world
 
-    def compute_projection(self, transform_mat: np.array = None) -> np.array:
+    def compute_projection(self, points:np.array, transform_mat: np.array = None) -> np.array:
         """
         Compute projections from 3D back to 2D based on a transformation matrix
         """
@@ -289,7 +285,7 @@ class BBoxAnnotator():
         ])
 
         projection, _ = cv2.projectPoints(
-            np.array(self.objects[0]),    # TODO: fix logic here
+            points,    # TODO: fix logic here
             rotation_vec,
             translation_vec,
             camera_mat,
@@ -324,9 +320,10 @@ class BBoxAnnotator():
         Saves XYZ coords and a corresponding transform as .npy files for
         recalibration
         """
-        xyz_coords = self.create_3d_world(depth_img_cv, segmentation=False)
+        segmentation = np.where(depth_img_cv > -10000000)    # TODO: replace with circle conditions?
+        xyz_coords = self.create_3d_world(depth_img_cv, segmentation=segmentation, create_world=False)
         coords_name = "xyz_coords_callback_{}.npy".format(self.callback_counter)
-        transform_name = "transform_calback_{}.npy".format(self.callback_counter)
+        transform_name = "transform_callback_{}.npy".format(self.callback_counter)
 
         coords_save_location = self.base_dir / "data" / "3d" / coords_name
         transform_save_location = self.base_dir / "data" / "3d" / transform_name
@@ -345,31 +342,8 @@ class BBoxAnnotator():
             self.callback_counter += 1
             return
 
-        # if camera_info.header.stamp.nsecs != color_img.header.stamp.nsecs or color_img.header.stamp.nsecs != depth_img.header.stamp.nsecs:
-        #     print("Misaligned frames! Press [ENTER] to continue:")
-        #     lol = input()
-
-        # print("camera_info.header: ",camera_info.header.stamp.secs, camera_info.header.stamp.nsecs)
-        # print("color_img.header: ",color_img.header.stamp.secs, color_img.header.stamp.nsecs)
-        # print("depth_img.header: ",depth_img.header.stamp.secs, depth_img.header.stamp.nsecs)
-        # print("joint_state.header: ",joint_state.header.stamp.secs, joint_state.header.stamp.nsecs)
-
         # convert from ROS msgs to np arrays
         color_img_cv, depth_img_cv = self.convert_images(color_img, depth_img)
-
-        # template matching stuff
-        # if True:
-        #     res = cv2.matchTemplate(color_img_cv, self.template, cv2.TM_CCOEFF_NORMED)
-        #     threshold = 0.65
-        #     loc = np.where( res >= threshold)
-        #     for pt in zip(*loc[::-1]):
-        #         cv2.rectangle(color_img_cv, pt, (pt[0] + self.template.shape[0], pt[1] + self.template.shape[1]), (0,0,255), 1)
-        #     with image_lock:
-        #         np.copyto(global_image, color_img_cv)
-            
-        #     return
-
-
 
         # get current base to camera transform
         base_to_camera_tf = self.get_base_to_camera_tf(
@@ -379,48 +353,46 @@ class BBoxAnnotator():
             # initial callback: store current tf, create 3d world
             self.register_camera_info(camera_info)
             self.init_camera_tf = base_to_camera_tf
-            self.create_3d_world(depth_img_cv, segmentation=True)
-            projection = self.compute_projection()
+            self.create_3d_world(depth_img_cv, segmentation=self.food_segmentation, create_world=True)
+            projection = self.compute_projection(np.array(self.objects[0]))
         else:
             # regular callback: find transform to position
-            init_camera_to_camera_tf = np.linalg.inv(
+            init_camera_to_current_camera_tf = np.linalg.inv(
                 base_to_camera_tf) @ self.init_camera_tf
-            projection = self.compute_projection(init_camera_to_camera_tf)
+            projection = self.compute_projection(np.array(self.objects[0]), init_camera_to_current_camera_tf)
 
         # avoid threading issues between OpenCV/ROS by copying within the lock
         final_image = self.create_projection_image(color_img_cv, projection)
         with image_lock:
             np.copyto(global_image, final_image)
 
-
-        # TMP stuff for comparing pointclouds
-        if self.callback_counter == 51:
-            self.storage['msg'] = color_img 
-            self.storage['color'] = color_img_cv
-            self.storage['depth'] = depth_img_cv
+        # save images if needed
+        if self.save_images:
+            cv2.imwrite('../data/video/{0:05d}.png'.format(self.callback_counter), color_img_cv)
 
         # create/publish a pointcloud
-        init_pc = self.create_pointcloud(msg=self.storage['msg'], color_img=self.storage['color'], depth_img=self.storage['depth'])
-        # current_pc =  
+        if self.callback_counter == 50:
+            self.storage['color'] = color_img_cv
+            self.storage['depth'] = depth_img_cv
+        if self.publish_pointcloud == True and self.callback_counter % 5 == 0 and self.callback_counter != 50:
+            init_pc = self.create_pointcloud(color_img, self.storage['color'], self.storage['depth'], \
+                                transform=self.init_camera_tf, topic='/generated/init_frame/pointcloud2')
+            current_pc = self.create_pointcloud(color_img, color_img_cv, depth_img_cv, \
+                                transform=base_to_camera_tf, topic='/generated/current_frame/pointcloud2')
 
+            self.pointcloud_init_pub.publish(init_pc)
+            self.pointcloud_current_pub.publish(current_pc)
 
-        # if self.pointcloud_type == "segmented":
-        #     self.create_pointcloud(
-        #         color_img, color_img=final_image, depth_img=depth_img_cv)
-        # elif self.pointcloud_type == "raw":
-        #     self.create_pointcloud(
-        #         color_img, color_img=color_img_cv, depth_img=depth_img_cv)
+        # save transforms/coords if needed
+        if self.callback_counter in self.save_callback_idxs:
+           self.save_3d_config(depth_img_cv, base_to_camera_tf) 
 
-        # save depth map if in list of indexes 
-        # if self.callback_counter in self.save_callback_idxs:
-        #     self.save_3d_config(depth_img_cv, init_camera_to_camera_tf)
-
+        # log appropriate callback variables
         callback_end_time = time.time()
         print("Callback {} Time : {}".format(self.callback_counter, callback_end_time - callback_start_time))
-
         self.callback_counter += 1
 
-    def create_pointcloud(self, msg, color_img: np.array, depth_img: np.array) -> None:
+    def create_pointcloud(self, msg, color_img: np.array, depth_img: np.array, transform:np.array) -> None:
         """
         Creates and publishes a pointcloud from provided rgb and depth images
         """
@@ -438,13 +410,15 @@ class BBoxAnnotator():
                     x = depth * ((i - self.cx)) * fx_inv
                     y = depth * ((j - self.cy)) * fy_inv
                     z = depth
-                    pt = [x, y, z, 0]
+                    # pt = [x, y, z, 0]
+                    pt = np.array([x,y,z,1]).T 
+                    tf_pt = list(transform @ pt).T
 
                     b, g, r, a = color[0], color[1], color[2], 255
                     rgb = struct.unpack(
                         'I', struct.pack('BBBB', b, g, r, a))[0]
-                    pt[3] = rgb
-                    points.append(pt)
+                    tf_pt[3] = rgb
+                    points.append(tf_pt)
         fields = [
             PointField('x', 0, PointField.FLOAT32, 1),
             PointField('y', 4, PointField.FLOAT32, 1),
@@ -452,8 +426,8 @@ class BBoxAnnotator():
             PointField('rgb', 12, PointField.UINT32, 1),
         ]
         pc2 = point_cloud2.create_cloud(header, fields, points)
-        # self.pointcloud_pub.publish(pc2)
-
+        return pc2
+    
     def tmp_get_segmentation(self):
         """
         Creates a segementation mask of all objects in the scene
@@ -486,7 +460,7 @@ def display() -> None:
         with image_lock:
             np.copyto(local_image, global_image)
         try:
-            cv2.imshow('test', local_image)
+            cv2.imshow('display', local_image)
             cv2.waitKey(1)
         except:
             pass
@@ -494,15 +468,18 @@ def display() -> None:
 
 def main():
     annotator = BBoxAnnotator(
-        pointcloud_type='raw'
+        publish_pointcloud=False,
+        save_images=True,
+        save_callback_idxs={51, 3918}
     )
     display_thread = threading.Thread(target=display)
 
+    # set up display thread to die on exit as well
     def signal_handler(sig, frame):
         quit_event.set()
         sys.exit(0)
-
     signal.signal(signal.SIGINT, signal_handler)
+
     display_thread.start()
     annotator.run()
 
