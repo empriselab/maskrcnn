@@ -1,0 +1,2684 @@
+{
+    "name": "v0.2",
+    "description": "all valid 50 callback samples labeled",
+    "created_at": "2023-03-27 15:23:12.825172+00:00",
+    "dataset": {
+        "name": "emprise-feeding-infra",
+        "description": "",
+        "category": "Other / mixed",
+        "created_at": "2023-03-24 13:44:22.819797+00:00",
+        "owner": "tjpatton1",
+        "task_type": "segmentation-bitmap",
+        "task_attributes": {
+            "format_version": "0.1",
+            "categories": [
+                {
+                    "name": "bell_pepper",
+                    "id": 1,
+                    "color": [
+                        0,
+                        113,
+                        188
+                    ]
+                },
+                {
+                    "id": 2,
+                    "name": "cantaloupe",
+                    "color": [
+                        236,
+                        176,
+                        31
+                    ]
+                },
+                {
+                    "id": 3,
+                    "name": "salami",
+                    "color": [
+                        125,
+                        46,
+                        141
+                    ]
+                },
+                {
+                    "id": 4,
+                    "name": "raspberry",
+                    "color": [
+                        118,
+                        171,
+                        47
+                    ]
+                },
+                {
+                    "id": 5,
+                    "name": "avocado",
+                    "color": [
+                        161,
+                        19,
+                        46
+                    ]
+                },
+                {
+                    "id": 6,
+                    "name": "carrot",
+                    "color": [
+                        255,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "id": 7,
+                    "name": "green_grape",
+                    "color": [
+                        255,
+                        127,
+                        0
+                    ]
+                },
+                {
+                    "id": 8,
+                    "name": "pepperoni",
+                    "color": [
+                        190,
+                        190,
+                        0
+                    ]
+                },
+                {
+                    "id": 9,
+                    "name": "egg",
+                    "color": [
+                        0,
+                        255,
+                        0
+                    ]
+                },
+                {
+                    "id": 10,
+                    "name": "mac_n_cheese",
+                    "color": [
+                        0,
+                        0,
+                        255
+                    ]
+                },
+                {
+                    "id": 11,
+                    "name": "pineapple",
+                    "color": [
+                        170,
+                        0,
+                        255
+                    ]
+                },
+                {
+                    "id": 12,
+                    "name": "apple",
+                    "color": [
+                        84,
+                        84,
+                        0
+                    ]
+                },
+                {
+                    "id": 13,
+                    "name": "cauliflower",
+                    "color": [
+                        84,
+                        170,
+                        0
+                    ]
+                },
+                {
+                    "id": 14,
+                    "name": "mango",
+                    "color": [
+                        84,
+                        255,
+                        0
+                    ]
+                },
+                {
+                    "id": 15,
+                    "name": "zucchini",
+                    "color": [
+                        170,
+                        84,
+                        0
+                    ]
+                },
+                {
+                    "id": 16,
+                    "name": "red_grape",
+                    "color": [
+                        170,
+                        170,
+                        0
+                    ]
+                },
+                {
+                    "id": 17,
+                    "name": "butternut_squash",
+                    "color": [
+                        170,
+                        255,
+                        0
+                    ]
+                },
+                {
+                    "id": 18,
+                    "name": "mashed_potatoes",
+                    "color": [
+                        255,
+                        84,
+                        0
+                    ]
+                },
+                {
+                    "id": 19,
+                    "name": "honeydew",
+                    "color": [
+                        255,
+                        170,
+                        0
+                    ]
+                },
+                {
+                    "id": 20,
+                    "name": "strawberry",
+                    "color": [
+                        255,
+                        255,
+                        0
+                    ]
+                },
+                {
+                    "id": 21,
+                    "name": "celery",
+                    "color": [
+                        0,
+                        84,
+                        127
+                    ]
+                },
+                {
+                    "id": 22,
+                    "name": "cake",
+                    "color": [
+                        0,
+                        170,
+                        127
+                    ]
+                },
+                {
+                    "id": 23,
+                    "name": "rice",
+                    "color": [
+                        0,
+                        255,
+                        127
+                    ]
+                },
+                {
+                    "id": 24,
+                    "name": "cherry_tomato",
+                    "color": [
+                        84,
+                        0,
+                        127
+                    ]
+                },
+                {
+                    "id": 25,
+                    "name": "banana",
+                    "color": [
+                        84,
+                        84,
+                        127
+                    ]
+                },
+                {
+                    "id": 26,
+                    "name": "blueberry",
+                    "color": [
+                        84,
+                        170,
+                        127
+                    ]
+                },
+                {
+                    "id": 27,
+                    "name": "kiwi",
+                    "color": [
+                        84,
+                        255,
+                        127
+                    ]
+                },
+                {
+                    "id": 28,
+                    "name": "cheese",
+                    "color": [
+                        170,
+                        0,
+                        127
+                    ]
+                },
+                {
+                    "id": 29,
+                    "name": "bell_pepper",
+                    "color": [
+                        170,
+                        84,
+                        127
+                    ]
+                },
+                {
+                    "id": 30,
+                    "name": "broccoli",
+                    "color": [
+                        170,
+                        170,
+                        127
+                    ]
+                },
+                {
+                    "id": 31,
+                    "name": "spinach",
+                    "color": [
+                        170,
+                        255,
+                        127
+                    ]
+                },
+                {
+                    "id": 32,
+                    "name": "kale",
+                    "color": [
+                        255,
+                        0,
+                        127
+                    ]
+                },
+                {
+                    "id": 33,
+                    "name": "lettuce",
+                    "color": [
+                        255,
+                        84,
+                        127
+                    ]
+                }
+            ]
+        },
+        "tasks": {
+            "ground-truth": {
+                "description": "",
+                "task_type": "segmentation-bitmap",
+                "attributes": {
+                    "format_version": "0.1",
+                    "categories": [
+                        {
+                            "name": "bell_pepper",
+                            "id": 1,
+                            "color": [
+                                0,
+                                113,
+                                188
+                            ]
+                        },
+                        {
+                            "id": 2,
+                            "name": "cantaloupe",
+                            "color": [
+                                236,
+                                176,
+                                31
+                            ]
+                        },
+                        {
+                            "id": 3,
+                            "name": "salami",
+                            "color": [
+                                125,
+                                46,
+                                141
+                            ]
+                        },
+                        {
+                            "id": 4,
+                            "name": "raspberry",
+                            "color": [
+                                118,
+                                171,
+                                47
+                            ]
+                        },
+                        {
+                            "id": 5,
+                            "name": "avocado",
+                            "color": [
+                                161,
+                                19,
+                                46
+                            ]
+                        },
+                        {
+                            "id": 6,
+                            "name": "carrot",
+                            "color": [
+                                255,
+                                0,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 7,
+                            "name": "green_grape",
+                            "color": [
+                                255,
+                                127,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 8,
+                            "name": "pepperoni",
+                            "color": [
+                                190,
+                                190,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 9,
+                            "name": "egg",
+                            "color": [
+                                0,
+                                255,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 10,
+                            "name": "mac_n_cheese",
+                            "color": [
+                                0,
+                                0,
+                                255
+                            ]
+                        },
+                        {
+                            "id": 11,
+                            "name": "pineapple",
+                            "color": [
+                                170,
+                                0,
+                                255
+                            ]
+                        },
+                        {
+                            "id": 12,
+                            "name": "apple",
+                            "color": [
+                                84,
+                                84,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 13,
+                            "name": "cauliflower",
+                            "color": [
+                                84,
+                                170,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 14,
+                            "name": "mango",
+                            "color": [
+                                84,
+                                255,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 15,
+                            "name": "zucchini",
+                            "color": [
+                                170,
+                                84,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 16,
+                            "name": "red_grape",
+                            "color": [
+                                170,
+                                170,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 17,
+                            "name": "butternut_squash",
+                            "color": [
+                                170,
+                                255,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 18,
+                            "name": "mashed_potatoes",
+                            "color": [
+                                255,
+                                84,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 19,
+                            "name": "honeydew",
+                            "color": [
+                                255,
+                                170,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 20,
+                            "name": "strawberry",
+                            "color": [
+                                255,
+                                255,
+                                0
+                            ]
+                        },
+                        {
+                            "id": 21,
+                            "name": "celery",
+                            "color": [
+                                0,
+                                84,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 22,
+                            "name": "cake",
+                            "color": [
+                                0,
+                                170,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 23,
+                            "name": "rice",
+                            "color": [
+                                0,
+                                255,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 24,
+                            "name": "cherry_tomato",
+                            "color": [
+                                84,
+                                0,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 25,
+                            "name": "banana",
+                            "color": [
+                                84,
+                                84,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 26,
+                            "name": "blueberry",
+                            "color": [
+                                84,
+                                170,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 27,
+                            "name": "kiwi",
+                            "color": [
+                                84,
+                                255,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 28,
+                            "name": "cheese",
+                            "color": [
+                                170,
+                                0,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 29,
+                            "name": "bell_pepper",
+                            "color": [
+                                170,
+                                84,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 30,
+                            "name": "broccoli",
+                            "color": [
+                                170,
+                                170,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 31,
+                            "name": "spinach",
+                            "color": [
+                                170,
+                                255,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 32,
+                            "name": "kale",
+                            "color": [
+                                255,
+                                0,
+                                127
+                            ]
+                        },
+                        {
+                            "id": 33,
+                            "name": "lettuce",
+                            "color": [
+                                255,
+                                84,
+                                127
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "labelsets": [
+            {
+                "name": "ground-truth",
+                "description": "",
+                "is_groundtruth": true,
+                "created_at": "2023-03-24 13:44:22.824583+00:00"
+            }
+        ],
+        "samples": [
+            {
+                "uuid": "4d617b0d-24f5-499a-89bf-d2e4c44f3a94",
+                "name": "init_frame_bag_10.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/64c42074-8b27-47c9-a344-778c2657c337.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 28
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 28
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 28
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 26
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 26
+                                },
+                                {
+                                    "id": 13,
+                                    "category_id": 7
+                                },
+                                {
+                                    "id": 14,
+                                    "category_id": 7
+                                },
+                                {
+                                    "id": 15,
+                                    "category_id": 26
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/244ff090-70ef-4774-80b9-8eaa7a31e409.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "20c2e3b2-a2d4-4e74-8ccd-f1ce62420f21",
+                "name": "init_frame_bag_11.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8b29d254-dd56-42b2-9ff7-f56b27b7b85e.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/b9186234-d35f-4998-9baf-5e6e2ade79c2.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "60fa3477-b130-4514-8028-e6e6a45ecf58",
+                "name": "init_frame_bag_12.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8e87fdde-8a7c-4366-9728-e9b518510770.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 24
+                                },
+                                {
+                                    "id": 13,
+                                    "category_id": 24
+                                },
+                                {
+                                    "id": 14,
+                                    "category_id": 3
+                                },
+                                {
+                                    "id": 15,
+                                    "category_id": 3
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/e6880d1b-726c-4ccf-9496-ae17e06f101a.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "b96c854d-4dc5-450d-b9c3-5b31ceed21ef",
+                "name": "init_frame_bag_13.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/3b0c4c01-c092-474b-a77d-ce4191299aa7.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/22e568ee-d974-4b31-8d3c-80a907cc57de.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "bd34028a-7634-4bb2-acae-127b5cef59c3",
+                "name": "init_frame_bag_14.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/3c844967-a93c-44ea-9559-7274cb4253b4.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 20
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 20
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8eee19f6-50d5-43c8-a0d3-4e7f12e4d444.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "ac2be870-4b75-4d0b-8fb7-026440e3706f",
+                "name": "init_frame_bag_15.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/526b41ac-ed6f-44fa-8b80-ab8229329ebc.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 30
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 30
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 28
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 28
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 26
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 26
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 26
+                                },
+                                {
+                                    "id": 13,
+                                    "category_id": 26
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/5c6e7280-0625-4b4d-b376-3792f69be215.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "02f73c44-c61c-4182-a031-3a82a69d4567",
+                "name": "init_frame_bag_16.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/4670e4cc-72ef-474b-9b7d-0928edba9781.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/0e8e4e09-07c9-440b-adc8-a9820f4d65ab.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "d518cc8c-e9ad-4a85-9ffb-94759351b0c6",
+                "name": "init_frame_bag_17.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/906785b0-3cdb-4357-9c7f-3686e22a1aa1.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 24
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 24
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/7a7d3494-69e4-4166-8deb-8f2f2c0c6928.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "4b54d49e-15d0-48a1-8dd8-9f96e90a3596",
+                "name": "init_frame_bag_18.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/2e90d8d1-2fb8-41ee-8580-fefa8c2bca4d.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 8
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 8
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 5
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 5
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 27
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/9b8aa26a-7a97-4903-9175-f96c3bf6d7bf.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "98094600-18f7-4dcb-98e9-618d8d27390a",
+                "name": "init_frame_bag_19.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/ed9e0597-9ce8-4019-877b-3977500a8fd9.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 20
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 20
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 9
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/e1d24f7a-e4f5-4d9e-ad97-4982ef06e08d.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "e1e5cdd3-c873-422b-8281-0855ec154c82",
+                "name": "init_frame_bag_1.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/e971542a-013f-4ecf-b139-a41e9f484df0.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 5
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 5
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 8
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/5bef534d-0af6-47b2-8f58-963bd892e255.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "dfc41833-9ba0-4dd7-bc48-d7b819229481",
+                "name": "init_frame_bag_20.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/63fa6009-3293-4886-b31a-c3e384b007da.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 6
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/ae046da7-a0da-46c0-a3cd-6b49879ef60c.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "3a5a49cc-9cd2-4a7d-b209-7efc06ff27ad",
+                "name": "init_frame_bag_21.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/2770f7c3-2894-406d-965f-46a09b86b900.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 6
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/a0e872a1-f54e-4e5e-bfb4-4ca2a55dce0c.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "82b3ff2c-2f05-4ad6-b29c-f5e8f37c5c07",
+                "name": "init_frame_bag_22.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/fe67e53d-ade0-488d-bbeb-6e4ca987d459.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/c4150f16-5922-4472-b427-d94c7a94ab91.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "ad751696-d9f9-4d01-9407-72551901b2cd",
+                "name": "init_frame_bag_23.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8b1636bf-e8b0-428d-adcd-b7ce59afdefe.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/1293ed14-f453-4236-8c26-d5d45afcc40e.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "69b30400-1b61-466f-abd4-263c448fe2ce",
+                "name": "init_frame_bag_26.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/81f4bd5b-6f02-464f-bbad-de0d12622ff1.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 19
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/413f5b34-f709-42c4-805d-d27477eb0000.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "73e9f0c9-b626-42f2-9b19-ea8047e4666d",
+                "name": "init_frame_bag_27.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/f4ef26d6-f6e3-4fb4-b6d2-11a39b65ea39.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/33357fdb-03ae-4796-beb1-f69c21b38f23.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "27c8d6c4-2601-488c-85a1-ec82935e013a",
+                "name": "init_frame_bag_2.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/f56846eb-ad6e-44c0-8f63-c93617c2dc19.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 7
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 7
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 8
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 8
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 10
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/e746ac9f-72d8-4b23-bf8e-061ea465997c.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "094cb5d9-711b-446f-9171-e93eebbcc5a4",
+                "name": "init_frame_bag_33.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/fd9cbb55-cd55-44a8-8d78-6d819a19c0a3.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 31
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/0bd8df39-000a-4c0a-a9f5-3b0f93bc276f.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "7528de43-1ce0-47ed-b01a-4bb21fb134df",
+                "name": "init_frame_bag_34.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/7ad0f62b-e946-48be-850f-7e1557984a11.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 3
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 8
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 28
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 31
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/a896962c-1ac5-45cb-8fd3-6461e50890a4.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "177ba20b-734a-4d72-a311-8765af3c620b",
+                "name": "init_frame_bag_35.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/a6a29841-4e91-4b0e-8c78-72b9d2a5440e.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 23
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 3
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 8
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 26
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/4d08e06d-ad79-4e04-bc46-9e1b8e3bd73c.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "c32446d4-f4b3-413b-89a5-f1679866748a",
+                "name": "init_frame_bag_36.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/29cbdd07-b8d3-4627-a135-339882aad43f.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 23
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/3b2fc1e7-be91-4e0a-bc8a-63698a5d72f1.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "551fbd2a-0fd0-4bfb-9b64-b16674645630",
+                "name": "init_frame_bag_37.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/f227f79c-b53a-4a68-af62-6d391a048558.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 23
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/efbf6131-db14-456d-9db8-d3c25b20b917.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "a440e6c1-2adc-411c-828d-ed0b68a984ab",
+                "name": "init_frame_bag_38.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/e4da0bad-f5db-4f8b-89d4-79fb3b8e187f.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/a11cc3ec-d541-413f-9132-eb867d9c3d2e.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "3430e355-60d3-4856-9fcf-401c76a3929d",
+                "name": "init_frame_bag_39.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/972d0148-ecd7-48c4-a5cc-f0d81457d1a9.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 18
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 17
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/5125a475-54fe-4598-9be0-5a548a7a5525.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "5a079210-05d0-484a-8054-ef7f56ec40a4",
+                "name": "init_frame_bag_3.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/126bbf3d-f84e-4b25-82bf-6ba363fdf6c9.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/7e0f1343-244d-48ec-8620-849d473ea5a1.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "18cb17ef-603b-4b59-8451-b21fcc27cc14",
+                "name": "init_frame_bag_40.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/2bb9fc20-833a-4c63-ae43-0342e09c478b.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 10
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 30
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/94c65627-cbe4-4f36-ae52-b0a7a26f5395.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "7ac705f4-dd31-4948-9d4e-a56da71dda62",
+                "name": "init_frame_bag_41.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/385cf998-bac4-4d62-b119-4aaa31f53ac9.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/eee27e8d-f63d-44c0-940f-018567de14fc.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "ecd7be15-21b8-447c-ae01-5b597091f4b4",
+                "name": "init_frame_bag_42.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/74151db5-c93f-485d-a30c-533615f3e9e6.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 16
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8068ea7f-0771-488b-907b-4cc86bb3e7be.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "5d4389be-c8ee-49d2-8183-a933395f1699",
+                "name": "init_frame_bag_43.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/47ba37bb-98bd-4028-96f3-304362b023d7.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 22
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 27
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 27
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/b60eba2f-6458-4e0b-83cb-63480b294ff8.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "5d874009-115c-48fb-ae31-0183ebe89f0e",
+                "name": "init_frame_bag_44.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/487f7cb2-cf5b-47b9-af1d-9a83ba1249c8.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 2,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 1
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 22
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 15
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/b06c12ec-b8f4-4f7c-95a5-53cb3d20adca.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "0c749d6e-1c0f-4abd-9f4f-446f2f645d8d",
+                "name": "init_frame_bag_45.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8439cad6-d5da-4122-be02-11b177a1f252.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "SKIPPED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8a810d54-4ec5-4080-a80c-779965b0248f.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "dc939a4b-de15-4519-8b67-c6e2d50a7f90",
+                "name": "init_frame_bag_4.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/8511cdcf-784f-4407-84ab-073247b5cdae.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 13
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 13,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 14,
+                                    "category_id": 12
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/f155d8a4-f04c-42f3-b4b7-2dd5d52fc5ba.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "40ffe00a-ea05-4bc8-bf16-16b8df2d7bd6",
+                "name": "init_frame_bag_5.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/0b3911aa-f90f-4626-8426-bf2ef708158c.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 5
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 5
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 16
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 12
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 12
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/d7f14017-9416-4db6-80ad-ab7a3c1965b4.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "a87b65df-7f9d-443d-abc7-47b8e04b98f5",
+                "name": "init_frame_bag_6.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/ebe9e18f-342b-44ef-939d-fc759da937dc.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 2
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 13
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 13
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 13
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 20
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 13,
+                                    "category_id": 21
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/94c3d323-6372-448f-b625-36da02c18c2e.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "25170cb9-6b32-435e-a321-5dbf2395f0e8",
+                "name": "init_frame_bag_7.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/378ae70e-5e11-41f1-a840-895fdd1120c4.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 3
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 3
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 20
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 20
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 14
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 17
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/1228d05b-9fd0-490b-b1bf-791901e473e5.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "14a978d6-2ae9-4d3f-b0c5-38b428a9a3d6",
+                "name": "init_frame_bag_8.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/c9e08f6d-33c5-47d5-85ec-d4334c61af6b.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 3
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 3
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 4
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 13,
+                                    "category_id": 21
+                                },
+                                {
+                                    "id": 14,
+                                    "category_id": 21
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/923bbb23-8938-4e4c-8cfc-2b347052c95f.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "a3d73856-1aa4-4e02-9a6a-6a8614c42282",
+                "name": "init_frame_bag_9.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/5a16bea3-7474-4c95-a613-2258d12f751c.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 11
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 19
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 25
+                                },
+                                {
+                                    "id": 7,
+                                    "category_id": 25
+                                },
+                                {
+                                    "id": 8,
+                                    "category_id": 25
+                                },
+                                {
+                                    "id": 9,
+                                    "category_id": 24
+                                },
+                                {
+                                    "id": 10,
+                                    "category_id": 24
+                                },
+                                {
+                                    "id": 11,
+                                    "category_id": 8
+                                },
+                                {
+                                    "id": 12,
+                                    "category_id": 8
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/a4e02098-105d-4bb8-a777-d5846e7a6ac4.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "f1606c89-19bf-42ea-b8b6-12eaff1ebc3c",
+                "name": "init_frame_bag_28.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/a287b3db-a9b2-45d0-ae54-270c2442287f.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 33
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 17
+                                },
+                                {
+                                    "id": 5,
+                                    "category_id": 7
+                                },
+                                {
+                                    "id": 6,
+                                    "category_id": 7
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/5ad82234-bb32-4062-bcb4-598b0f5f04fe.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "af450982-e34c-4cce-b4d1-7ff40631e1b3",
+                "name": "init_frame_bag_29.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/b9a00058-91b1-40c0-b122-3a5973887b6e.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 15
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 33
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/fa70a9e7-13a6-4fcc-a443-ea7da77fab42.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "67246bc1-4421-4d4d-8045-91ca0adb005d",
+                "name": "init_frame_bag_30.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/a73a6d03-19d5-47bb-a04d-a91cfdb53116.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 33
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 6
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 30
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/426ed190-04a0-47f9-9883-75bb67ae55c8.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "79725334-8848-4e74-8b69-6f487f4be0c7",
+                "name": "init_frame_bag_31.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/86afe4d1-b265-4519-867a-f483b460e6a7.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 32
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 24
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 24
+                                },
+                                {
+                                    "id": 4,
+                                    "category_id": 13
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/2b5b8775-9903-496a-9acf-aaf58bd8d833.png"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "uuid": "25d04d02-64b2-4ede-838f-a4afcecda24e",
+                "name": "init_frame_bag_32.png",
+                "attributes": {
+                    "image": {
+                        "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/50cedbd8-77e8-4f18-8514-f6578cb87677.png"
+                    }
+                },
+                "metadata": {},
+                "labels": {
+                    "ground-truth": {
+                        "label_status": "LABELED",
+                        "attributes": {
+                            "format_version": "0.1",
+                            "annotations": [
+                                {
+                                    "id": 1,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 2,
+                                    "category_id": 9
+                                },
+                                {
+                                    "id": 3,
+                                    "category_id": 32
+                                }
+                            ],
+                            "segmentation_bitmap": {
+                                "url": "https://segmentsai-prod.s3.eu-west-2.amazonaws.com/assets/tjpatton1/62851d43-9a5f-4e77-90fa-80af385e6b78.png"
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
