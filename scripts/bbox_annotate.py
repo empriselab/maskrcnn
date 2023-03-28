@@ -191,6 +191,7 @@ class BBoxAnnotator():
         end_effector_to_camera[:3, 3] = np.array([0.014, 0.060, 0.034])
         end_effector_to_camera[3, 3] = 1
 
+        # end_effector_to_camera[:3, 3] = np.array([0.014, 0.060, 0.034])   # BEST VALUES
         # end_effector_to_camera[:3, 3] = np.array([0.0185, 0.058, 0.034])    # RAJAT VALS
         # # old camera calibration params
         # end_effector_to_camera[:3, :3] = Rotation.from_quat([0.50080661, 0.49902445, 0.50068027, -0.49948635]).as_matrix()
