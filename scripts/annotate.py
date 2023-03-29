@@ -10,6 +10,8 @@ import json
 from pathlib import Path
 import signal
 import threading
+import argparse
+from subprocess import Popen
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -20,7 +22,6 @@ import cv_bridge
 import rospy
 import tf2_ros
 import message_filters
-
 from std_msgs.msg import Header
 from sensor_msgs import point_cloud2
 from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
@@ -33,27 +34,30 @@ image_lock = threading.Lock()
 quit_event = threading.Event()
 
 
-class BBoxAnnotator():
+class Annotator():
     """
-    A class for automatically labeling bounding boxes given a single bounding box
+    A class for automatically labeling images given a single semantic segmentation 
     """
 
-    def __init__(self, bagfile="experiment_1.bag", image_dim=(720, 1280),
-                 show_cv=False, save_images=False, publish_pointcloud=None, save_callback_idxs=None):
+    def __init__(self, bagfile_number, create_training_set, training_set_version=None, display=False, publish_pointcloud=False, image_dim=(720, 1280), n_classes=33):
         """
-        Initialize BBoxAnnotator module
+        Initialize Annotator module
         """
-        rospy.init_node('bbox_annotator')
+        rospy.init_node('annotator')
 
-        # configure files
-        self.base_dir, self.segmentation_file = self.init_filesystem(bagfile)
+        # configure basics 
+        self.bagfile_number = bagfile_number
+        self.create_training_set = create_training_set
+        self.training_set_version = training_set_version
+        self.n_classes = n_classes
+        self.base_dir, self.initial_segmentation, self.labeling_metadata, self.rosbag_path, self.id_to_color = self.init_filesystem()
 
         # init CV
         self.height, self.width = image_dim
-        self.save_images = save_images
+        self.display = display 
 
         # segmentation of the scene
-        self.food_segmentation = self.tmp_get_segmentation()
+        self.food_segmentation = self.get_segmentation()
 
         # initial base to camera transform
         self.init_camera_tf = None
@@ -63,22 +67,17 @@ class BBoxAnnotator():
         self.publish_pointcloud = publish_pointcloud
 
         # storage for 3D bounding prisms in the scene
-        self.objects = []
-        self.save_callback_idxs = save_callback_idxs
+        self.objects = {i:None for i in range(1, self.n_classes+1)}   # for each object category `i`, store the point locations in 3d space
 
         # a binary image that masks the forque in the image
         self.fork_mask = self.create_fork_mask()
 
-        # count number of callback invocations
+        # count number of callback invocations / set a timer on them
+        self.timer = rospy.Timer(rospy.Duration(15), self.timer_callback)
         self.callback_counter = 0
 
-        # TMP STUFF FOR TEMPLATE MATCHING
-        # self.template = self.tmp_salami_bbox()
-
-        # TMP store some things
-        self.storage = {}
-
         # spin up ROS
+        self.rosbag_process = self.play_rosbag()
         self.tf_buffer = self.init_tf_buffer()
         self.init_ros_pub_and_sub()
 
@@ -87,16 +86,45 @@ class BBoxAnnotator():
         Run the annotator
         """
         rospy.spin()
-
-    def init_filesystem(self, bagfile: str):
+    
+    def timer_callback(self):
         """
-        Uses pathlib to get the `foodrecognition` base directory as well as the .json
-        file containing the object segmentations
+        Once there are no new messages, clean up the program
+        """
+        if rospy.Time.now() - self.last_msg_time > rospy.Duration(30):
+            # If no new message has arrived in the last 30 seconds, exit the program
+            rospy.loginfo('No new messages in 15 seconds, exiting...')
+            self.rosbag_process.terminate()
+            rospy.signal_shutdown('No new messages in 15 seconds')
+
+    def play_rosbag(self):
+        proc = Popen(['rosbag', 'play', str(self.rosbag_path)])
+        return proc
+
+    def get_segmentation(self):
+        """
+        Load in the initial segmentation file
+        """
+        return cv2.imread(self.initial_segmentation)
+
+    def init_filesystem(self):
+        """
+        Uses pathlib to get the `foodrecognition` base directory as well as other important files
         """
         base_dir = Path(__file__).absolute().parents[1]
-        segmentation_file_name = os.path.splitext(bagfile)[0] + ".json"
-        segmentation_file = base_dir / "data" / "segmentations" / segmentation_file_name
-        return base_dir, segmentation_file
+        initial_segmentation = str(base_dir / "data" / "segmentations" / "processed" / "init_frame_bag_{}.png".format(self.bagfile_number))
+        labeling_metadata_fpath = str(base_dir / "data" / "json" / "emprise-feeding-infra-ground-truth.json")
+        rosbag_path = base_dir / "data" / "rosbag" / "experiment_{}.bag".format(self.bagfile_number)
+
+        # load .json files for labeling meta data
+        with open(labeling_metadata_fpath, 'r') as f:
+            labeling_metadata = json.load(f)
+        # load id->color .json file
+        with open(str(base_dir / "data" / "json" / "id_to_color.json"), 'r') as f:
+            id_to_color = json.load(f)
+            id_to_color[0] = [0,0,0]
+
+        return base_dir, initial_segmentation, labeling_metadata, rosbag_path, id_to_color 
 
     def init_ros_pub_and_sub(self) -> None:
         """
@@ -124,11 +152,12 @@ class BBoxAnnotator():
         """
         tf_buffer = tf2_ros.Buffer(rospy.Duration(30.0))
         tf2_ros.TransformListener(tf_buffer)
-
-        # time.sleep(0.5)
         return tf_buffer
 
     def create_fork_mask(self):
+        """
+        Creates a mask image represeting the fork in the frame
+        """
         white = np.ones((self.height, self.width))
         fork_outline = np.array([
             [714, 717], [707, 640], [733, 636], [724, 534],
@@ -137,20 +166,6 @@ class BBoxAnnotator():
         ])
         cv2.fillPoly(white, [fork_outline], 0)
         return white
-
-    def create_named_windows(self, height: int, width: int) -> None:
-        """
-        Creates named CV2 windows
-        """
-        x, y = 25, 25
-        topics = [
-            '/camera_1/color/image_raw',
-        ]
-        for t in topics:
-            cv2.namedWindow(t, cv2.WINDOW_NORMAL)
-            cv2.resizeWindow(t, width, height)
-            cv2.moveWindow(t, x, y)
-            y += 360
 
     def get_base_to_camera_tf(self, stamp):
         """
@@ -201,8 +216,6 @@ class BBoxAnnotator():
 
         return base_to_ee @ end_effector_to_camera @ camera_link_to_color_optical
 
-        # return self.transform_to_mat(transform)
-
     def register_camera_info(self, camera_info: CameraInfo):
         """
         Extract fx, fy, cx, cy for future use
@@ -242,7 +255,6 @@ class BBoxAnnotator():
         assert mat.shape[0] == depth.shape[0]
 
         world = np.zeros((mat.shape[0], 3))
-
         world[:, 0] = (depth / self.fx) * (mat[:, 0] - self.cx)    # world x
         world[:, 1] = (depth / self.fy) * (mat[:, 1] - self.cy)    # world y
         world[:, 2] = depth                                        # world z
@@ -257,16 +269,22 @@ class BBoxAnnotator():
         """
         depth_map = depth_img_cv / 1000.0    # mm -> m
 
-        # here row values correspond to y, column values correspond to x so we must invert
-        depth_values = depth_map[segmentation]
-        reshape_coords = np.array(
-            list(zip(segmentation[1], segmentation[0])))
-        world = self.vec_pixel_to_world(reshape_coords, depth_values)
- 
-        if create_world:
-            self.objects.append(world)
-            self.world_created = True
-        return world
+        # 2D segmentation has number between 0 and n_classes at each (i,j) index
+        # Need to separate out into discrete segmentations for each object class so that we can
+        # track how individual objects move within the scene
+        present_category_ids = []
+        for i in range(1, self.n_classes+1):
+            subsegmentation = np.where(segmentation == i)
+            if len(subsegmentation[0]) < 0:    # if we actually have pixels corresponding to this category id
+                present_category_ids.append(i)
+                depth_values = depth_map[subsegmentation]
+                reshape_coords = np.array(
+                    list(zip(segmentation[1], segmentation[0])))
+                subsegmentation_world = self.vec_pixel_to_world(reshape_coords, depth_values)
+                self.objects[i] = subsegmentation_world
+
+        self.world_created = True
+        self.present_category_ids = present_category_ids    # keep track of which of the 33 classes are actually in the scene
 
     def compute_projection(self, points:np.array, transform_mat: np.array = None) -> np.array:
         """
@@ -284,7 +302,6 @@ class BBoxAnnotator():
             [0, self.fy, self.cy],
             [0, 0, 1]
         ])
-
         projection, _ = cv2.projectPoints(
             points,    # TODO: fix logic here
             rotation_vec,
@@ -294,57 +311,51 @@ class BBoxAnnotator():
         )
         return projection[:, 0, :]    # ignore nonexistent y coord
 
-    def create_projection_image(self, color_img: np.array, projection: np.array):
+    def create_projected_mask(self, transform_mat:np.array=None):
+        """
+        Use the transformation matrix for this callback to create an updated mask of the scene
+        TODO: Find some way to model better model occlusion? Apply subsegmentations by mean y-val? Get sorted list of mean z-val?
+        """
+        # for each object in our `objects` dictionary, compute_projection(). output will be a dict mapping i -> 2d points
+        projections = {i:self.compute_projection(self.objects[i], transform_mat) for i in self.present_category_ids}
+        canvas = np.zeros((self.height, self.width))
+        for category_id in self.present_category_ids: 
+            projection = projections[category_id]
+            bounded_projection = projection[
+                np.logical_and(np.abs(projection[:, 0]) < self.width, np.abs(
+                    projection[:, 1]) < self.height)
+            ]
+            canvas[(bounded_projection[:, 1].astype('int'),
+                    bounded_projection[:, 0].astype('int'))] = category_id    # want to fill our mask image with integers representing the category id
+            
+        mask = canvas * self.fork_mask    # here we take our 2D integer array and multiply it by the boolean mask array
+        return mask
+
+
+    def save_images(self, color_img, mask_img) -> None:
+        """
+        Write our color image and mask image to the appropriate place in the training directory
+        """
+        training_dir = self.base_dir / 'data' / 'training' / self.training_set_version
+        img_dir, mask_dir = training_dir / "images", training_dir / "masks"
+        img_fpath = str(img_dir) + 'bag_{}_callback_{}_img.png'.format(self.bagfile_number, self.callback_counter) 
+        mask_fpath = str(mask_dir) + 'bag_{}_callback_{}_mask.png'.format(self.bagfile_number, self.callback_counter) 
+        cv2.imwrite(img_fpath, color_img)
+        cv2.imwrite(mask_fpath, mask_img)
+
+    def create_projection_image(self, color_img: np.array, projected_mask: np.array):
         """
         Create a new image with our projection overlayed on top 
         """
-        # bound the projection to our width and height
-        canvas = np.zeros((self.height, self.width))
-        bounded_projection = projection[
-            np.logical_and(np.abs(projection[:, 0]) < self.width, np.abs(
-                projection[:, 1]) < self.height)
-        ]
-        canvas[(bounded_projection[:, 1].astype('int'),
-                bounded_projection[:, 0].astype('int'))] = 1
-
-        # mask our projection coordinates with the fork mask
-        masked_projection = cv2.bitwise_and(canvas, self.fork_mask)
-        valid_projection = np.where(masked_projection == 1)
-
-        segmentation_image = np.copy(color_img)
-        segmentation_image[valid_projection] = (255, 0, 0)
-
-        return cv2.addWeighted(segmentation_image, 0.5, color_img, 0.5, 1.0)
-
-    def save_3d_config(self, depth_img_cv:np.array, transform:np.array) -> None:
-        """
-        Saves XYZ coords and a corresponding transform as .npy files for
-        recalibration
-        """
-        # save only the 3d config inside of the plate region for optimal matching
-        blank = np.zeros((self.height, self.width))
-        with open('../data/segmentations/plates.json') as f:
-            pts = np.array(json.load(f)['segmentations'][str(self.callback_counter)])
-            print(pts)
-            cv2.fillPoly(blank, [pts], 1)
-            segmentation =  np.where(blank == 1)
-
-        # extract xyz coords and save   
-        xyz_coords = self.create_3d_world(depth_img_cv, segmentation=segmentation, create_world=False)
-        coords_name = "xyz_coords_callback_{}.npy".format(self.callback_counter)
-        transform_name = "transform_callback_{}.npy".format(self.callback_counter)
-
-        coords_save_location = self.base_dir / "data" / "3d" / coords_name
-        transform_save_location = self.base_dir / "data" / "3d" / transform_name
-
-        np.save(coords_save_location, xyz_coords)
-        np.save(transform_save_location, transform)
+        color_mapped_mask = np.array(np.vectorize(self.id_to_color.get)(projected_mask))
+        return cv2.addWeighted(color_mapped_mask, 0.5, color_img, 0.5, 1.0)
 
     def callback(self, camera_info: CameraInfo, color_img: Image, depth_img: Image):
         """
         Hook function for info published to camera topics
         """
         callback_start_time = time.time()
+        self.last_msg_time = rospy.Time.now()
 
         # populate tf buffer for first 50 callbacks
         if self.callback_counter < 50:
@@ -363,38 +374,39 @@ class BBoxAnnotator():
             self.register_camera_info(camera_info)
             self.init_camera_tf = base_to_camera_tf
             self.create_3d_world(depth_img_cv, segmentation=self.food_segmentation, create_world=True)
-            projection = self.compute_projection(np.array(self.objects[0]))
+            projected_mask = self.create_projected_mask()
         else:
             # regular callback: find transform to position
             init_camera_to_current_camera_tf = np.linalg.inv(
                 base_to_camera_tf) @ self.init_camera_tf
-            projection = self.compute_projection(np.array(self.objects[0]), init_camera_to_current_camera_tf)
+            projected_mask = self.create_projected_mask(transform_mat=init_camera_to_current_camera_tf)
 
-        # avoid threading issues between OpenCV/ROS by copying within the lock
-        final_image = self.create_projection_image(color_img_cv, projection)
-        with image_lock:
-            np.copyto(global_image, final_image)
+        # for training, save both the color image and the projected mask
+        if self.create_training_set:
+            self.save_images(color_img_cv, projected_mask)
 
-        # save images if needed
-        if self.save_images:
-            cv2.imwrite('../data/video/{0:05d}.png'.format(self.callback_counter), color_img_cv)
+        # if display, create a superimposition of img and mask
+        if self.display:
+            # avoid threading issues between OpenCV/ROS by copying within the lock
+            display_image = self.create_projection_image(color_img_cv, projected_mask)
+            with image_lock:
+                np.copyto(global_image, display_image)
 
+
+
+        # TODO: Clean up PC artifacts
         # create/publish a pointcloud
-        if self.callback_counter == 50:
-            self.storage['color'] = color_img_cv
-            self.storage['depth'] = depth_img_cv
-        if self.publish_pointcloud == True and self.callback_counter % 5 == 0 and self.callback_counter != 50:
-            init_pc = self.create_pointcloud(color_img, self.storage['color'], self.storage['depth'], \
-                                transform=self.init_camera_tf, topic='/generated/init_frame/pointcloud2')
-            current_pc = self.create_pointcloud(color_img, color_img_cv, depth_img_cv, \
-                                transform=base_to_camera_tf, topic='/generated/current_frame/pointcloud2')
+        # if self.callback_counter == 50:
+        #     self.storage['color'] = color_img_cv
+        #     self.storage['depth'] = depth_img_cv
+        # if self.publish_pointcloud == True and self.callback_counter % 5 == 0 and self.callback_counter != 50:
+        #     init_pc = self.create_pointcloud(color_img, self.storage['color'], self.storage['depth'], \
+        #                         transform=self.init_camera_tf, topic='/generated/init_frame/pointcloud2')
+        #     current_pc = self.create_pointcloud(color_img, color_img_cv, depth_img_cv, \
+        #                         transform=base_to_camera_tf, topic='/generated/current_frame/pointcloud2')
 
-            self.pointcloud_init_pub.publish(init_pc)
-            self.pointcloud_current_pub.publish(current_pc)
-
-        # save transforms/coords if needed
-        if self.callback_counter in self.save_callback_idxs:
-           self.save_3d_config(depth_img_cv, base_to_camera_tf) 
+        #     self.pointcloud_init_pub.publish(init_pc)
+        #     self.pointcloud_current_pub.publish(current_pc)
 
         # log appropriate callback variables
         callback_end_time = time.time()
@@ -437,28 +449,6 @@ class BBoxAnnotator():
         pc2 = point_cloud2.create_cloud(header, fields, points)
         return pc2
     
-    def tmp_get_segmentation(self):
-        """
-        Creates a segementation mask of all objects in the scene
-        """
-        blank = np.zeros((self.height, self.width))
-        cv2.circle(blank, (694, 165), 47, 1, thickness=-
-                   1)         # salami ad hoc for now
-
-        with open(self.segmentation_file) as f:
-            segmentations = json.load(f)['segmentations']
-            for seg in segmentations:
-                pts = np.array(seg['segmentation'])
-                cv2.fillPoly(blank, [pts], 1)
-
-        return np.where(blank == 1)
-    
-    # NOTE
-    # tmp functions to try adding template matching to automatic segmentation algo!
-    def tmp_salami_bbox(self):
-        frame_0 = cv2.imread('../data/video/00000.png')
-        salami_seg = frame_0[114:208, 635:745]
-        return salami_seg
 
 def display() -> None:
     """
@@ -476,20 +466,29 @@ def display() -> None:
 
 
 def main():
-    annotator = BBoxAnnotator(
-        publish_pointcloud=False,
-        save_images=False,
-        save_callback_idxs={51, 3100}
+    parser = argparse.ArgumentParser()
+    parser.add_argument("bagfile_number")
+    parser.add_argument("-v", "--version", choices=range(1,11), default=None)    # note that version is useless if --create-training-set is False
+    parser.add_argument("--create-training-set", dest='create_training_set', choices=["True", "False"], default="True")
+    parser.add_argument("-d", "--display", choices=["True", "False"], default="False")
+    args = parser.parse_args()
+
+    annotator = Annotator(
+        bagfile_number=args.bagfile_number,
+        training_set_version=args.version,
+        create_training_set=bool(args.create_training_set),
+        display=bool(args.display)
     )
     display_thread = threading.Thread(target=display)
 
     # set up display thread to die on exit as well
     def signal_handler(sig, frame):
         quit_event.set()
+        annotator.rosbag_process.terminate()
         sys.exit(0)
     signal.signal(signal.SIGINT, signal_handler)
 
-    display_thread.start()
+    if args.display: display_thread.start()
     annotator.run()
 
 if __name__ == '__main__':
