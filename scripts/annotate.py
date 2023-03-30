@@ -75,9 +75,9 @@ class Annotator():
         # count number of callback invocations / set a timer on them
         self.timer = rospy.Timer(rospy.Duration(15), self.timer_callback)
         self.callback_counter = 0
+        self.total_time = 0.0
 
         # spin up ROS
-        # self.rosbag_process = self.play_rosbag()
         self.rosbag_process = self.play_rosbag()
         self.last_msg_time = rospy.Time.now()
         self.tf_buffer = self.init_tf_buffer()
@@ -100,6 +100,7 @@ class Annotator():
             os.kill(os.getpid(), signal.SIGINT)
 
     def play_rosbag(self, supress=True):
+        print('Playing Rosbag...')
         if supress:
             with open(os.devnull, 'w') as fp:
                 proc = Popen(['rosbag', 'play', str(self.rosbag_path)], stdout=fp)
@@ -113,6 +114,19 @@ class Annotator():
         """
         return cv2.imread(self.initial_segmentation, cv2.IMREAD_GRAYSCALE)    # grayscale b/c we just have class integers
 
+    def check_valid_experiment(self, labeling_metadata_fpath):
+        """
+        Uses the metadata JSON to determine if the provided bagfile has been annotated
+        """
+        with open(str(labeling_metadata_fpath), 'r') as f:
+            metadata = json.load(f)['dataset']['samples']
+
+        def nbr(x):
+            return x.split('_')[-1].split('.')[0]
+
+        valid = [nbr(x['name']) for x in metadata if x['labels']['ground-truth']['label_status'] == 'LABELED']
+        return self.bagfile_number in valid 
+
     def init_filesystem(self):
         """
         Uses pathlib to get the `foodrecognition` base directory as well as other important files
@@ -121,6 +135,13 @@ class Annotator():
         initial_segmentation = str(base_dir / "data" / "segmentations" / "processed" / "init_frame_bag_{}.png".format(self.bagfile_number))
         labeling_metadata_fpath = str(base_dir / "data" / "json" / "emprise-feeding-infra-ground-truth.json")
         rosbag_path = base_dir / "data" / "bagfile" / "experiment_{}.bag".format(self.bagfile_number)
+
+        valid_experiment = self.check_valid_experiment(labeling_metadata_fpath)
+        if not valid_experiment:
+            print('Bagfile or segmentation file missing... exiting')
+            os.kill(os.getpid(), signal.SIGINT)
+
+        print('Filesystem is good, starting collection')
 
         # load .json files for labeling meta data
         with open(labeling_metadata_fpath, 'r') as f:
@@ -309,7 +330,7 @@ class Annotator():
             [0, 0, 1]
         ])
         projection, _ = cv2.projectPoints(
-            points,    # TODO: fix logic here
+            points, 
             rotation_vec,
             translation_vec,
             camera_mat,
@@ -368,6 +389,9 @@ class Annotator():
         # populate tf buffer for first 50 callbacks
         if self.callback_counter < 50:
             self.callback_counter += 1
+            callback_end_time = time.time()
+            callback_time = float(callback_end_time - callback_start_time)
+            self.total_time += callback_time
             return
 
         # convert from ROS msgs to np arrays
@@ -394,15 +418,11 @@ class Annotator():
             self.save_images(color_img_cv, projected_mask)
 
         # if display, create a superimposition of img and mask
-        t_x = time.time()
         if self.display:
             # avoid threading issues between OpenCV/ROS by copying within the lock
             display_image = self.create_projection_image(color_img_cv, projected_mask)
             with image_lock:
                 np.copyto(global_image, display_image)
-        t_y = time.time()
-        print(t_y - t_x)
-
 
         # TODO: Clean up PC artifacts
         # create/publish a pointcloud
@@ -421,8 +441,12 @@ class Annotator():
 
         # log appropriate callback variables
         callback_end_time = time.time()
-        print("Callback {} Time : {}".format(self.callback_counter, callback_end_time - callback_start_time))
+        callback_time = float(callback_end_time - callback_start_time)
+        self.total_time += callback_time
         self.callback_counter += 1
+        mean_time = self.total_time / self.callback_counter
+        print(f"BAG {self.bagfile_number} :: CALLBACK {self.callback_counter:04d} :: MEAN TIME {mean_time:.5f}", end='\r')
+        
 
     def create_pointcloud(self, msg, color_img: np.array, depth_img: np.array, transform:np.array) -> None:
         """
@@ -500,7 +524,7 @@ def main():
         sys.exit("")
     signal.signal(signal.SIGINT, signal_handler)
 
-    if args.display: display_thread.start()
+    if args.display == "True": display_thread.start()
     annotator.run()
 
 if __name__ == '__main__':
