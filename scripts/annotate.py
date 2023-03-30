@@ -77,7 +77,8 @@ class Annotator():
         self.callback_counter = 0
 
         # spin up ROS
-        self.rosbag_process = self.play_rosbag()
+        # self.rosbag_process = self.play_rosbag()
+        self.rosbag_process = None
         self.tf_buffer = self.init_tf_buffer()
         self.init_ros_pub_and_sub()
 
@@ -87,7 +88,7 @@ class Annotator():
         """
         rospy.spin()
     
-    def timer_callback(self):
+    def timer_callback(self, event):
         """
         Once there are no new messages, clean up the program
         """
@@ -114,7 +115,7 @@ class Annotator():
         base_dir = Path(__file__).absolute().parents[1]
         initial_segmentation = str(base_dir / "data" / "segmentations" / "processed" / "init_frame_bag_{}.png".format(self.bagfile_number))
         labeling_metadata_fpath = str(base_dir / "data" / "json" / "emprise-feeding-infra-ground-truth.json")
-        rosbag_path = base_dir / "data" / "rosbag" / "experiment_{}.bag".format(self.bagfile_number)
+        rosbag_path = base_dir / "data" / "bagfile" / "experiment_{}.bag".format(self.bagfile_number)
 
         # load .json files for labeling meta data
         with open(labeling_metadata_fpath, 'r') as f:
@@ -331,7 +332,6 @@ class Annotator():
         mask = canvas * self.fork_mask    # here we take our 2D integer array and multiply it by the boolean mask array
         return mask
 
-
     def save_images(self, color_img, mask_img) -> None:
         """
         Write our color image and mask image to the appropriate place in the training directory
@@ -382,6 +382,7 @@ class Annotator():
             projected_mask = self.create_projected_mask(transform_mat=init_camera_to_current_camera_tf)
 
         # for training, save both the color image and the projected mask
+        print(self.create_training_set)
         if self.create_training_set:
             self.save_images(color_img_cv, projected_mask)
 
@@ -476,8 +477,8 @@ def main():
     annotator = Annotator(
         bagfile_number=args.bagfile_number,
         training_set_version=args.version,
-        create_training_set=bool(args.create_training_set),
-        display=bool(args.display)
+        create_training_set=args.create_training_set == "True",
+        display=args.display == "True"
     )
     display_thread = threading.Thread(target=display)
 
