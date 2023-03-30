@@ -78,7 +78,8 @@ class Annotator():
 
         # spin up ROS
         # self.rosbag_process = self.play_rosbag()
-        self.rosbag_process = None
+        self.rosbag_process = self.play_rosbag()
+        self.last_msg_time = rospy.Time.now()
         self.tf_buffer = self.init_tf_buffer()
         self.init_ros_pub_and_sub()
 
@@ -92,21 +93,25 @@ class Annotator():
         """
         Once there are no new messages, clean up the program
         """
-        if rospy.Time.now() - self.last_msg_time > rospy.Duration(30):
-            # If no new message has arrived in the last 30 seconds, exit the program
-            rospy.loginfo('No new messages in 15 seconds, exiting...')
-            self.rosbag_process.terminate()
+        # program has started (callback_counter >0) and we haven't recieved any new messages in 30s
+        if self.callback_counter > 0 and rospy.Time.now() - self.last_msg_time > rospy.Duration(30):
+            self.rosbag_process.kill()
             rospy.signal_shutdown('No new messages in 15 seconds')
+            os.kill(os.getpid(), signal.SIGINT)
 
-    def play_rosbag(self):
-        proc = Popen(['rosbag', 'play', str(self.rosbag_path)])
+    def play_rosbag(self, supress=True):
+        if supress:
+            with open(os.devnull, 'w') as fp:
+                proc = Popen(['rosbag', 'play', str(self.rosbag_path)], stdout=fp)
+        else:   
+            proc = Popen(['rosbag', 'play', str(self.rosbag_path)])
         return proc
 
     def get_segmentation(self):
         """
         Load in the initial segmentation file
         """
-        return cv2.imread(self.initial_segmentation)
+        return cv2.imread(self.initial_segmentation, cv2.IMREAD_GRAYSCALE)    # grayscale b/c we just have class integers
 
     def init_filesystem(self):
         """
@@ -122,7 +127,7 @@ class Annotator():
             labeling_metadata = json.load(f)
         # load id->color .json file
         with open(str(base_dir / "data" / "json" / "id_to_color.json"), 'r') as f:
-            id_to_color = json.load(f)
+            id_to_color = {int(k):v for k,v in json.load(f).items()}    # keys are str by default
             id_to_color[0] = [0,0,0]
 
         return base_dir, initial_segmentation, labeling_metadata, rosbag_path, id_to_color 
@@ -276,11 +281,11 @@ class Annotator():
         present_category_ids = []
         for i in range(1, self.n_classes+1):
             subsegmentation = np.where(segmentation == i)
-            if len(subsegmentation[0]) < 0:    # if we actually have pixels corresponding to this category id
+            if len(subsegmentation[0]) > 0:    # if we actually have pixels corresponding to this category id
                 present_category_ids.append(i)
                 depth_values = depth_map[subsegmentation]
                 reshape_coords = np.array(
-                    list(zip(segmentation[1], segmentation[0])))
+                    list(zip(subsegmentation[1], subsegmentation[0])))
                 subsegmentation_world = self.vec_pixel_to_world(reshape_coords, depth_values)
                 self.objects[i] = subsegmentation_world
 
@@ -336,10 +341,10 @@ class Annotator():
         """
         Write our color image and mask image to the appropriate place in the training directory
         """
-        training_dir = self.base_dir / 'data' / 'training' / self.training_set_version
+        training_dir = self.base_dir / 'data' / 'training' / 'v{}'.format(self.training_set_version)
         img_dir, mask_dir = training_dir / "images", training_dir / "masks"
-        img_fpath = str(img_dir) + 'bag_{}_callback_{}_img.png'.format(self.bagfile_number, self.callback_counter) 
-        mask_fpath = str(mask_dir) + 'bag_{}_callback_{}_mask.png'.format(self.bagfile_number, self.callback_counter) 
+        img_fpath = str(img_dir / 'bag_{}_callback_{}_img.png'.format(self.bagfile_number, self.callback_counter)) 
+        mask_fpath = str(mask_dir / 'bag_{}_callback_{}_mask.png'.format(self.bagfile_number, self.callback_counter))
         cv2.imwrite(img_fpath, color_img)
         cv2.imwrite(mask_fpath, mask_img)
 
@@ -347,7 +352,10 @@ class Annotator():
         """
         Create a new image with our projection overlayed on top 
         """
-        color_mapped_mask = np.array(np.vectorize(self.id_to_color.get)(projected_mask))
+        b, g, r = [{k:v[i] for k,v in self.id_to_color.items()} for i in range(3)]
+        f_b, f_g, f_r = [np.vectorize(x.get) for x in [b,g,r]]
+        b_layer, g_layer, r_layer = [f(projected_mask).astype('uint8') for f in [f_b, f_g, f_r]]
+        color_mapped_mask = np.dstack((b_layer, g_layer, r_layer))
         return cv2.addWeighted(color_mapped_mask, 0.5, color_img, 0.5, 1.0)
 
     def callback(self, camera_info: CameraInfo, color_img: Image, depth_img: Image):
@@ -382,17 +390,18 @@ class Annotator():
             projected_mask = self.create_projected_mask(transform_mat=init_camera_to_current_camera_tf)
 
         # for training, save both the color image and the projected mask
-        print(self.create_training_set)
         if self.create_training_set:
             self.save_images(color_img_cv, projected_mask)
 
         # if display, create a superimposition of img and mask
+        t_x = time.time()
         if self.display:
             # avoid threading issues between OpenCV/ROS by copying within the lock
             display_image = self.create_projection_image(color_img_cv, projected_mask)
             with image_lock:
                 np.copyto(global_image, display_image)
-
+        t_y = time.time()
+        print(t_y - t_x)
 
 
         # TODO: Clean up PC artifacts
@@ -408,6 +417,7 @@ class Annotator():
 
         #     self.pointcloud_init_pub.publish(init_pc)
         #     self.pointcloud_current_pub.publish(current_pc)
+
 
         # log appropriate callback variables
         callback_end_time = time.time()
@@ -469,7 +479,7 @@ def display() -> None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("bagfile_number")
-    parser.add_argument("-v", "--version", choices=range(1,11), default=None)    # note that version is useless if --create-training-set is False
+    parser.add_argument("-v", "--version", default=None)    # useless if --create-training-set is False
     parser.add_argument("--create-training-set", dest='create_training_set', choices=["True", "False"], default="True")
     parser.add_argument("-d", "--display", choices=["True", "False"], default="False")
     args = parser.parse_args()
@@ -485,8 +495,9 @@ def main():
     # set up display thread to die on exit as well
     def signal_handler(sig, frame):
         quit_event.set()
-        annotator.rosbag_process.terminate()
-        sys.exit(0)
+        annotator.rosbag_process.kill()
+        rospy.signal_shutdown("")
+        sys.exit("")
     signal.signal(signal.SIGINT, signal_handler)
 
     if args.display: display_thread.start()
