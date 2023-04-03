@@ -3,3 +3,5 @@
 *.gv
 data/video/
 data/training/
+creds.json
+*__pycache__*

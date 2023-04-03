@@ -1,2 +1,6 @@
 rospy
-segments-ai
+torch
+boto3
+numpy
+matplotlib
+opencv-python
