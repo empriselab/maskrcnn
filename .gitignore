@@ -1,7 +1,12 @@
+*__pycache__*
+
 *.bag
 *.mp4
 *.gv
+*.err
+*.out
+
 data/video/
 data/training/
+
 creds.json
-*__pycache__*

@@ -1,29 +1,38 @@
 import os
 import time
+from pathlib import Path
+import gc
+import multiprocessing
 
 from PIL import Image 
 import numpy as np
 import cv2
 import torch
-from tqdm import tqdm
+
 
 TRAINING_SET_VERSION = '1'
-TRAINING_DATA_DIR = '../data/training/v{}'.format(TRAINING_SET_VERSION)
-MASKRCNN_DIR = '../data/training/maskrcnn'
+BASE_DIR = Path(__file__).absolute().parents[1]
+print("BASE DIRECTORY :: {}".format(BASE_DIR))
+TRAINING_DATA_DIR = str(BASE_DIR / 'data' / 'training' / 'v{}'.format(TRAINING_SET_VERSION))
+MASKRCNN_DIR = str(BASE_DIR / 'data' / 'training' / 'maskrcnn')
 IMAGES_DIR = os.path.join(TRAINING_DATA_DIR, 'images')
 MASKS_DIR = os.path.join(TRAINING_DATA_DIR, 'masks')
 
-t0 = time.time()
-examples = os.listdir(IMAGES_DIR)
-N = len(examples)
-for i in tqdm(range(N)):
-
+def create_maskrcnn_data(image_filename):
+    """
+    Uses an image filename to load an image and coresponding segmentation
+    mask. Then uses this to create bounding boxes, binary masks, and labels
+    all of which are required by MaskRCNN. These are saved as a compressed
+    .npz format.
+    """
     # load image and corresponding mask
-    image_filename = examples[i]
     split_filename = image_filename.split('_')[:-1]
     example_name = '_'.join(split_filename)
     split_filename.append('mask.png')
     mask_filename = '_'.join(split_filename)
+    example_path = os.path.join(MASKRCNN_DIR, example_name) 
+    if os.path.exists(example_path):
+        return 
 
     image_path = os.path.join(IMAGES_DIR, image_filename)
     mask_path = os.path.join(MASKS_DIR, mask_filename)
@@ -34,7 +43,7 @@ for i in tqdm(range(N)):
     boxes, labels, binary_masks = [], [], []
     class_labels = torch.unique(torch.tensor(mask)).tolist()[1:]    # exclude zero
     if len(class_labels) == 0:     # if there are no objects annotated in the scene
-        continue
+       return 
 
     for label in class_labels:
         class_mask = (mask == label).astype('uint8') 
@@ -57,13 +66,24 @@ for i in tqdm(range(N)):
         labels.extend(labels_for_this_class)
         binary_masks.extend(class_object_masks)
 
-    boxes = np.array(boxes)
-    labels = np.array(labels)
-    masks = np.array(binary_masks)
-    example_path = os.path.join(MASKRCNN_DIR, example_name) 
+    boxes = np.array(boxes).astype(np.int8)
+    labels = np.array(labels).astype(np.int8)
+    masks = np.array(binary_masks).astype(np.int8)
     os.makedirs(example_path, exist_ok=True)
 
-    np.save(os.path.join(example_path, 'image.npy'), image)
-    np.save(os.path.join(example_path, 'boxes.npy'), boxes)
-    np.save(os.path.join(example_path, 'masks.npy'), masks)
-    np.save(os.path.join(example_path, 'labels.npy'), labels)
+    # compressed here saves a TON of data
+    np.savez_compressed(
+        os.path.join(example_path, 'data'),
+        image=image,
+        masks=masks,
+        labels=labels,
+        boxes=boxes
+    )
+    gc.collect()
+
+if __name__ == '__main__':
+    examples = os.listdir(IMAGES_DIR)
+    pool = multiprocessing.Pool()
+    pool.map(create_maskrcnn_data, examples)
+    pool.close()
+    pool.join()
