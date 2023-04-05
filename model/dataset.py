@@ -1,44 +1,38 @@
+import torch 
+import torchvision.transforms as transforms
+from torch.utils.data import Dataset
+import numpy as np
 import os
-from PIL import Image
-import torch.utils.data as data
 
-class SegmentationDataset(data.Dataset):
-    def __init__(self, train_dir, transform=None):
-        self.train_dir = train_dir 
-        self.transform = transform
+class MaskRCNNDataset(Dataset):
+    def __init__(self, root_dir):
+        self.root_dir = root_dir
+        self.transforms = transforms.Compose([
+            transforms.ToTensor()
+        ])
+        self.file_list = []
         
-        # Get a list of all the image and mask file names
-        self.image_dir = os.path.join(self.train_dir, 'images')
-        self.mask_dir = os.path.join(self.train_dir, 'masks')
-        self.image_filenames = [fi for fi in os.listdir(self.image_dir)] 
-        
+        # Collect list of npz files
+        for subdir in os.listdir(root_dir):
+            subdir_path = os.path.join(root_dir, subdir)
+            if not os.path.isdir(subdir_path):
+                continue
+            
+            data_path = os.path.join(subdir_path, 'data.npz')
+            if not os.path.exists(data_path):
+                continue
+            
+            self.file_list.append(data_path)
+            
     def __len__(self):
-        return len(self.image_filenames)
+        return len(self.file_list)
     
-    def __getitem__(self, index):
-       # Load the image from the given index
-        image_filename = self.image_filenames[index]
-        image_path = os.path.join(self.image_dir, image_filename)
-        image = Image.open(image_path).convert('RGB')
+    def __getitem__(self, idx):
+        # Load data from npz file
+        npz_data = np.load(self.file_list[idx])
+        image = torch.tensor(npz_data['image']) / 255.
+        masks = torch.tensor(npz_data['masks'], dtype=torch.int64)
+        labels = torch.tensor(npz_data['labels'], dtype=torch.int64)
+        boxes = torch.tensor(npz_data['boxes'])
 
-        # Find the corresponding mask filename
-        # TODO Possibly optimize, this method could be faster  
-        path_list = image_filename.split('_')
-        path_list[-1] = 'mask.png'
-        mask_filename = '_'.join(path_list)
-        mask_path = os.path.join(self.mask_dir, mask_filename)
-
-        # Load the mask if it exists, or return None otherwise
-        if os.path.exists(mask_path):
-            mask = Image.open(mask_path)
-        else:
-            print(f"Warning: mask not found for image {image_filename}")
-            mask = None
-
-        # Apply the transform to the image and mask (if it exists)
-        if self.transform is not None:
-            image = self.transform(image)
-            mask = self.transform(mask)
-
-        
-        return image, mask
+        return {'image':image, 'masks':masks, 'boxes':boxes,'labels':labels}

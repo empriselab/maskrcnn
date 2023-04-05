@@ -27,13 +27,14 @@ def create_maskrcnn_data(image_filename):
     """
     # load image and corresponding mask
     split_filename = image_filename.split('_')[:-1]
+    bag_nbr = '_'.join(split_filename[:2])
+    callback_nbr = '_'.join(split_filename[-2:])
     example_name = '_'.join(split_filename)
     split_filename.append('mask.png')
     mask_filename = '_'.join(split_filename)
-    example_path = os.path.join(MASKRCNN_DIR, example_name) 
-    if os.path.exists(example_path):
-        return 
-
+    bag_path = os.path.join(MASKRCNN_DIR, bag_nbr)
+    # example_path = os.path.join(MASKRCNN_DIR, example_name) 
+    
     image_path = os.path.join(IMAGES_DIR, image_filename)
     mask_path = os.path.join(MASKS_DIR, mask_filename)
     image = np.array(Image.open(image_path).convert('RGB'))
@@ -42,8 +43,6 @@ def create_maskrcnn_data(image_filename):
     # extract bbox, labels 
     boxes, labels, binary_masks = [], [], []
     class_labels = torch.unique(torch.tensor(mask)).tolist()[1:]    # exclude zero
-    if len(class_labels) == 0:     # if there are no objects annotated in the scene
-       return 
 
     for label in class_labels:
         class_mask = (mask == label).astype('uint8') 
@@ -66,24 +65,28 @@ def create_maskrcnn_data(image_filename):
         labels.extend(labels_for_this_class)
         binary_masks.extend(class_object_masks)
 
-    boxes = np.array(boxes).astype(np.int8)
+    boxes = np.array(boxes).astype(np.int16)    # need 16bit precision for 720x1280 images
     labels = np.array(labels).astype(np.int8)
     masks = np.array(binary_masks).astype(np.int8)
-    os.makedirs(example_path, exist_ok=True)
+    os.makedirs(bag_path, exist_ok=True)
 
-    # compressed here saves a TON of data
-    np.savez_compressed(
-        os.path.join(example_path, 'data'),
-        image=image,
-        masks=masks,
-        labels=labels,
-        boxes=boxes
-    )
+    # verify N's are equal and we actually found objects in the scene
+    assert (boxes.shape[0] == labels.shape[0]) and (labels.shape[0] == masks.shape[0])
+    if boxes.shape[0] > 0:
+        # compressed here saves a TON of data
+        np.savez_compressed(
+            os.path.join(bag_path, callback_nbr),    # also, saving in subdirs speeds up filesave time
+            image=image,
+            masks=masks,
+            labels=labels,
+            boxes=boxes
+        )
     gc.collect()
 
 if __name__ == '__main__':
+    n_processes = 16    # adjust as needed, 16 on the g2 cluster is fast
     examples = os.listdir(IMAGES_DIR)
-    pool = multiprocessing.Pool()
+    pool = multiprocessing.Pool(n_processes)
     pool.map(create_maskrcnn_data, examples)
     pool.close()
     pool.join()
