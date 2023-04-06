@@ -5,6 +5,7 @@
 *.gv
 *.err
 *.out
+*.pth
 
 data/video/
 data/training/

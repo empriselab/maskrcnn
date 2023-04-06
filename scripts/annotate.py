@@ -445,7 +445,7 @@ class Annotator():
         self.total_time += callback_time
         self.callback_counter += 1
         mean_time = self.total_time / self.callback_counter
-        print(f"BAG {self.bagfile_number} :: CALLBACK {self.callback_counter:04d} :: MEAN TIME {mean_time:.5f}", end='\r')
+        print(f"BAG {self.bagfile_number} :: CALLBACK {self.callback_counter:04d} :: MEAN TIME {mean_time:.5f}")
         
 
     def create_pointcloud(self, msg, color_img: np.array, depth_img: np.array, transform:np.array) -> None:

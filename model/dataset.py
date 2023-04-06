@@ -15,14 +15,11 @@ class MaskRCNNDataset(Dataset):
         # Collect list of npz files
         for subdir in os.listdir(root_dir):
             subdir_path = os.path.join(root_dir, subdir)
-            if not os.path.isdir(subdir_path):
-                continue
             
-            data_path = os.path.join(subdir_path, 'data.npz')
-            if not os.path.exists(data_path):
-                continue
-            
-            self.file_list.append(data_path)
+            for fi in os.listdir(subdir_path):
+                if '.npz' in fi and 'bag_1' not in subdir:
+                    full_path = os.path.join(root_dir, subdir, fi)
+                    self.file_list.append(full_path)
             
     def __len__(self):
         return len(self.file_list)

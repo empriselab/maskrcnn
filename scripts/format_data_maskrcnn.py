@@ -18,6 +18,8 @@ MASKRCNN_DIR = str(BASE_DIR / 'data' / 'training' / 'maskrcnn')
 IMAGES_DIR = os.path.join(TRAINING_DATA_DIR, 'images')
 MASKS_DIR = os.path.join(TRAINING_DATA_DIR, 'masks')
 
+MAX_OBJECTS = 20     # adjustable parameter, should be the max segmentations you expect in a scene
+
 def create_maskrcnn_data(image_filename):
     """
     Uses an image filename to load an image and coresponding segmentation
@@ -53,7 +55,7 @@ def create_maskrcnn_data(image_filename):
         labels_for_this_class = [] 
         for contour in contours:
             contour_area = cv2.contourArea(contour)
-            if contour_area > 0.0:    # sometimes finds 0 dim contours?
+            if contour_area > 400.0:    # avoid 0 dimensional / speck contours
                 x, y, w, h = cv2.boundingRect(contour)
                 class_bounding_boxes.append((x, y, x+w, y+h))
                 object_mask = np.zeros_like(mask)
