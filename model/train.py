@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 from torchvision.models.detection import maskrcnn_resnet50_fpn
 import torch.utils.data as data
 from torch import utils 
+from torch.utils.data import DataLoader
 import numpy as np
 
 from dataset import MaskRCNNDataset
@@ -19,25 +20,8 @@ TRAINING_SET_VERSION = '1'
 DATA_PATH = str(BASE_DIR / 'data' / 'training' / 'maskrcnn')
 BATCH_SIZE = 8
 NUM_CLASSES = 34        # 33 food items + a zero class
+TEST_BAG_INDEXES = [1,4,7,11,14]
 
-
-bag_numbers = os.listdir(DATA_PATH)
-def load_data():
-    random_bag = np.random.choice(bag_numbers)
-    bag_path = os.path.join(DATA_PATH, random_bag)
-    callbacks = os.listdir(bag_path)
-    n_callbacks = len(callbacks)
-    random_callback = callbacks[np.random.randint(0, n_callbacks)]
-    full_npz_path = os.path.join(bag_path, random_callback)
-    print(full_npz_path)
-    npz_data = np.load(full_npz_path)
-
-    image = (torch.tensor(npz_data['image']) / 255.).permute(2, 0, 1)[None, :]
-    masks = torch.tensor(npz_data['masks'], dtype=torch.int64)
-    labels = torch.tensor(npz_data['labels'], dtype=torch.int64)
-    boxes = torch.tensor(npz_data['boxes'])
-
-    return image, [{'masks':masks, 'labels':labels, 'boxes':boxes}]
 
 # Define the device to train the model on
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -45,8 +29,14 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 print("DEVICE :: {}".format(device))
 
 # load data and create data loaders
-dataset = MaskRCNNDataset(DATA_PATH)
-train_loader, test_loader = utils.get_data_loaders(dataset, batch_size=BATCH_SIZE, num_workers=0)
+all_bags = os.listdir(DATA_PATH)
+train_bags = [os.path.join(DATA_PATH, x) for x in all_bags if int(x.split('_')[-1]) not in TEST_BAG_INDEXES]
+test_bags = [os.path.join(DATA_PATH, x)for x in all_bags if int(x.split('_')[-1]) in TEST_BAG_INDEXES]
+
+train_dataset = MaskRCNNDataset(train_bags)
+test_dataset = MaskRCNNDataset(test_bags)
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=0)
+test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=0)
 
 # Load the pre-trained Mask RCNN model
 # Replace the final layer with a new fully connected layer with 34 output channels

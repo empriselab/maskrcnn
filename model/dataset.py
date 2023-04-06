@@ -5,20 +5,14 @@ import numpy as np
 import os
 
 class MaskRCNNDataset(Dataset):
-    def __init__(self, root_dir):
-        self.root_dir = root_dir
-        self.transforms = transforms.Compose([
-            transforms.ToTensor()
-        ])
+    def __init__(self, directories):
         self.file_list = []
         
         # Collect list of npz files
-        for subdir in os.listdir(root_dir):
-            subdir_path = os.path.join(root_dir, subdir)
-            
-            for fi in os.listdir(subdir_path):
-                if '.npz' in fi and 'bag_1' not in subdir:
-                    full_path = os.path.join(root_dir, subdir, fi)
+        for directory in directories:
+            for fi in os.listdir(directory):
+                if '.npz' in fi:
+                    full_path = os.path.join(directory, fi)
                     self.file_list.append(full_path)
             
     def __len__(self):

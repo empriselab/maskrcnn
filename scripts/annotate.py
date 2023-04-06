@@ -363,9 +363,12 @@ class Annotator():
         Write our color image and mask image to the appropriate place in the training directory
         """
         training_dir = self.base_dir / 'data' / 'training' / 'v{}'.format(self.training_set_version)
-        img_dir, mask_dir = training_dir / "images", training_dir / "masks"
-        img_fpath = str(img_dir / 'bag_{}_callback_{}_img.png'.format(self.bagfile_number, self.callback_counter)) 
-        mask_fpath = str(mask_dir / 'bag_{}_callback_{}_mask.png'.format(self.bagfile_number, self.callback_counter))
+        # img_dir, mask_dir = training_dir / "images", training_dir / "masks"
+        bag_dir = training_dir / "bag_{}".format(self.bagfile_number)
+        if not os.path.exists(str(bag_dir)):
+            os.mkdir(str(bag_dir))
+        img_fpath = str(bag_dir / 'bag_{}_callback_{}_img.png'.format(self.bagfile_number, self.callback_counter)) 
+        mask_fpath = str(bag_dir / 'bag_{}_callback_{}_mask.png'.format(self.bagfile_number, self.callback_counter))
         cv2.imwrite(img_fpath, color_img)
         cv2.imwrite(mask_fpath, mask_img)
 
@@ -445,7 +448,7 @@ class Annotator():
         self.total_time += callback_time
         self.callback_counter += 1
         mean_time = self.total_time / self.callback_counter
-        print(f"BAG {self.bagfile_number} :: CALLBACK {self.callback_counter:04d} :: MEAN TIME {mean_time:.5f}")
+        print(f"BAG {self.bagfile_number} :: CALLBACK {self.callback_counter:04d} :: TIME {callback_time:.5f}")
         
 
     def create_pointcloud(self, msg, color_img: np.array, depth_img: np.array, transform:np.array) -> None:

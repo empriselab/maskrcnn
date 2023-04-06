@@ -1,8 +1,10 @@
 import os
+import argparse
+import glob
 import time
 from pathlib import Path
 import gc
-import multiprocessing
+import concurrent.futures
 
 from PIL import Image 
 import numpy as np
@@ -20,7 +22,7 @@ MASKS_DIR = os.path.join(TRAINING_DATA_DIR, 'masks')
 
 MAX_OBJECTS = 20     # adjustable parameter, should be the max segmentations you expect in a scene
 
-def create_maskrcnn_data(image_filename):
+def create_maskrcnn_data(image_path):
     """
     Uses an image filename to load an image and coresponding segmentation
     mask. Then uses this to create bounding boxes, binary masks, and labels
@@ -28,17 +30,12 @@ def create_maskrcnn_data(image_filename):
     .npz format.
     """
     # load image and corresponding mask
-    split_filename = image_filename.split('_')[:-1]
-    bag_nbr = '_'.join(split_filename[:2])
-    callback_nbr = '_'.join(split_filename[-2:])
-    example_name = '_'.join(split_filename)
-    split_filename.append('mask.png')
-    mask_filename = '_'.join(split_filename)
-    bag_path = os.path.join(MASKRCNN_DIR, bag_nbr)
-    # example_path = os.path.join(MASKRCNN_DIR, example_name) 
-    
-    image_path = os.path.join(IMAGES_DIR, image_filename)
-    mask_path = os.path.join(MASKS_DIR, mask_filename)
+    split_path = image_path.split('/') 
+    bag_nbr = split_path[-2]
+    maskrcnn_bag_path = os.path.join(MASKRCNN_DIR, bag_nbr)
+    callback_nbr = '_'.join(split_path[-1].split('_')[2:4])
+    mask_path = image_path.replace('img.png', 'mask.png')
+
     image = np.array(Image.open(image_path).convert('RGB'))
     mask = np.array(Image.open(mask_path).convert('L'))
 
@@ -70,25 +67,42 @@ def create_maskrcnn_data(image_filename):
     boxes = np.array(boxes).astype(np.int16)    # need 16bit precision for 720x1280 images
     labels = np.array(labels).astype(np.int8)
     masks = np.array(binary_masks).astype(np.int8)
-    os.makedirs(bag_path, exist_ok=True)
+    os.makedirs(maskrcnn_bag_path, exist_ok=True)
 
     # verify N's are equal and we actually found objects in the scene
     assert (boxes.shape[0] == labels.shape[0]) and (labels.shape[0] == masks.shape[0])
-    if boxes.shape[0] > 0:
+    if boxes.shape[0] > 0 and boxes.shape[0] < 50:    # no crazy cases!
         # compressed here saves a TON of data
         np.savez_compressed(
-            os.path.join(bag_path, callback_nbr),    # also, saving in subdirs speeds up filesave time
+            os.path.join(maskrcnn_bag_path, callback_nbr),    # also, saving in subdirs speeds up filesave time
             image=image,
             masks=masks,
             labels=labels,
             boxes=boxes
         )
     gc.collect()
+    return None
 
 if __name__ == '__main__':
-    n_processes = 16    # adjust as needed, 16 on the g2 cluster is fast
-    examples = os.listdir(IMAGES_DIR)
-    pool = multiprocessing.Pool(n_processes)
-    pool.map(create_maskrcnn_data, examples)
-    pool.close()
-    pool.join()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-b", "--bag", default=None)    # useless if --create-training-set is False
+    args = parser.parse_args()
+
+    if args.bag is None:
+        print('Scanning dir **')
+        examples = glob.glob('{}/**/*_img.png'.format(TRAINING_DATA_DIR), recursive=True)
+    else:
+        print('Scanning dir bag_{}'.format(args.bag))
+        examples = glob.glob('{}/bag_{}/*_img.png'.format(TRAINING_DATA_DIR, args.bag), recursive=True)
+
+    max_processes = os.cpu_count()
+    N = len(examples)
+    print('Number of examples :: {}'.format(N))
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_processes) as ex:
+        n_processed = 0
+        for result in ex.map(create_maskrcnn_data, examples):
+            n_processed += 1
+
+            if n_processed % 100 == 0:
+                print('Progress: {}/{}'.format(n_processed, N), end='\r')
