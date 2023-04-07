@@ -18,9 +18,9 @@ import utils
 BASE_DIR = Path(__file__).absolute().parents[1]
 TRAINING_SET_VERSION = '1'
 DATA_PATH = str(BASE_DIR / 'data' / 'training' / 'maskrcnn')
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 NUM_CLASSES = 34        # 33 food items + a zero class
-TEST_BAG_INDEXES = [1,4,7,11,14]
+TEST_BAG_INDEXES = [1]
 
 
 # Define the device to train the model on
@@ -35,8 +35,8 @@ test_bags = [os.path.join(DATA_PATH, x)for x in all_bags if int(x.split('_')[-1]
 
 train_dataset = MaskRCNNDataset(train_bags)
 test_dataset = MaskRCNNDataset(test_bags)
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=0)
-test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=0)
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=0, collate_fn=utils.collate_fn)
+test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=0, collate_fn=utils.collate_fn)
 
 # Load the pre-trained Mask RCNN model
 # Replace the final layer with a new fully connected layer with 34 output channels
@@ -54,32 +54,27 @@ for param in model.roi_heads.box_predictor.parameters():
 # Define the optimizer and the learning rate scheduler
 params = [p for p in model.parameters() if p.requires_grad]
 optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
-lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+# lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
 # Set up loss function and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.roi_heads.box_predictor.parameters(), lr=0.001, momentum=0.9)
+optimizer = torch.optim.AdamW(model.roi_heads.box_predictor.parameters(), lr=1e-5)
 
 # Train only the last layer for a few epochs
-num_epochs = 5
+num_epochs = 1
+best_val_loss = float('inf')
 for epoch in range(num_epochs):
 
     # train step
-    model.train()
-    for i, batch in enumerate(train_loader):
 
+    for i, batch in enumerate(train_loader):
+        model.train()
         images, targets = batch 
         images = images.to(device)
         targets = [{k: v.to(device) for k,v in t.items()} for t in targets]
 
         loss_dict = model(images, targets)
-        # total_loss = sum(loss for loss in loss_dict.values())
-        total_loss = 0
-        for loss_key in loss_dict:
-            if 'classifier' in loss_key:
-                total_loss += 2*loss_dict[loss_key]
-            else:
-                total_loss += loss_dict[loss_key]
+        total_loss = sum(loss for loss in loss_dict.values())
 
         # backward pass
         optimizer.zero_grad()
@@ -93,10 +88,33 @@ for epoch in range(num_epochs):
 
         print(f"Epoch [{epoch+1}/{num_epochs}], Batch [{i+1}/{len(train_loader)}], Loss: {total_loss.detach().item():.4f}")
 
-    lr_scheduler.step()
+        if i % 10 == 0:
+            print('Evaluating...')
+            with torch.no_grad():
+                total_val_loss = 0
+                for j, batch in enumerate(test_loader):        
+                    if j >= 5:
+                        break
+                    images, targets = batch 
+                    images = images.to(device)
+                    targets = [{k: v.to(device) for k,v in t.items()} for t in targets]
 
-best_model = model.state_dict()
-torch.save(best_model, 'best_weighted_model.pth')
+                    loss_dict = model(images, targets)
+                    val_loss = sum(loss for loss in loss_dict.values()).detach().item()
+                    total_val_loss += val_loss
+
+                    print(f"Batch [{j+1}/{5}], Loss: {val_loss:.4f}")
+
+                print('Average Val Loss :: {}'.format(total_val_loss/5))
+                if total_val_loss < best_val_loss:
+                    print('New best validation loss! Saving model...')
+                    best_model = model.state_dict()
+                    torch.save(best_model, 'best_model.pth') 
+                    best_val_loss = total_val_loss
+
+
+# best_model = model.state_dict()
+# torch.save(best_model, 'best_model.pth')
 
 # lr_scheduler.step()
 

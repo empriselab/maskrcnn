@@ -45,14 +45,15 @@ def create_maskrcnn_data(image_path):
 
     for label in class_labels:
         class_mask = (mask == label).astype('uint8') 
-        contours, _ = cv2.findContours(class_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        processed_mask = cv2.blur(class_mask, (2,2) > 0.5).astype('uint8')
+        contours, _ = cv2.findContours(processed_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         class_bounding_boxes = []
         class_object_masks = []
         labels_for_this_class = [] 
         for contour in contours:
             contour_area = cv2.contourArea(contour)
-            if contour_area > 400.0:    # avoid 0 dimensional / speck contours
+            if contour_area > 50.0:    # avoid 0 dimensional / speck contours
                 x, y, w, h = cv2.boundingRect(contour)
                 class_bounding_boxes.append((x, y, x+w, y+h))
                 object_mask = np.zeros_like(mask)
