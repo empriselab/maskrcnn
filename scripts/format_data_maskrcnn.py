@@ -45,7 +45,7 @@ def create_maskrcnn_data(image_path):
 
     for label in class_labels:
         class_mask = (mask == label).astype('uint8') 
-        processed_mask = cv2.blur(class_mask, (2,2) > 0.5).astype('uint8')
+        processed_mask = (cv2.blur(class_mask, (2,2)) > 0.5).astype('uint8')
         contours, _ = cv2.findContours(processed_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         class_bounding_boxes = []
