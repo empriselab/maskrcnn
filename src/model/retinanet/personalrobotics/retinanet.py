@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from fpn import FPN50, FPN101
-import retinanet_config as config
+import config
 
 
 class RetinaNet(nn.Module):
