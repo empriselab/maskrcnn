@@ -16,7 +16,7 @@ import numpy as np
 from dataset import MaskRCNNDataset
 import utils
 
-BASE_DIR = Path(__file__).absolute().parents[1]
+BASE_DIR = Path(__file__).absolute().parents[3]
 TRAINING_SET_VERSION = '1'
 DATA_PATH = str(BASE_DIR / 'data' / 'training' / 'maskrcnn')
 BATCH_SIZE = 8
@@ -36,8 +36,8 @@ test_bags = [os.path.join(DATA_PATH, x)for x in all_bags if int(x.split('_')[-1]
 
 train_dataset = MaskRCNNDataset(train_bags)
 test_dataset = MaskRCNNDataset(test_bags)
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=0, collate_fn=utils.collate_fn)
-test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=0, collate_fn=utils.collate_fn)
+train_loader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE, num_workers=0, collate_fn=utils.collate_fn)
+test_loader = DataLoader(test_dataset, shuffle=True, batch_size=BATCH_SIZE, num_workers=0, collate_fn=utils.collate_fn)
 
 # Load the pre-trained Mask RCNN model
 # Replace the final layer with a new fully connected layer with 34 output channels
@@ -59,10 +59,10 @@ optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=0.0005)
 
 # Set up loss function and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.AdamW(model.roi_heads.box_predictor.parameters(), lr=1e-5)
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
 
 # Train only the last layer for a few epochs
-num_epochs = 1
+num_epochs = 3
 best_val_loss = float('inf')
 for epoch in range(num_epochs):
 
@@ -77,12 +77,10 @@ for epoch in range(num_epochs):
         targets = [{k: v.to(device) for k,v in t.items()} for t in targets]
 
         loss_dict = model(images, targets)
-        classifier_loss = loss_dict['loss_classifier']
-        # total_loss = sum(loss for loss in loss_dict.values())
+        total_loss = sum(loss for loss in loss_dict.values())
 
         # backward pass
-        # total_loss.backward()
-        classifier_loss.backward()
+        total_loss.backward()
         optimizer.step()
 
         # release computational graph
@@ -90,10 +88,12 @@ for epoch in range(num_epochs):
         # for loss in loss_dict.values():
         #     loss.detach_()
 
-        # print(f"Epoch [{epoch+1}/{num_epochs}], Batch [{i+1}/{len(train_loader)}], Loss: {total_loss.detach().item():.4f}")
-        print(f"Epoch [{epoch+1}/{num_epochs}], Batch [{i+1}/{len(train_loader)}], Loss: {classifier_loss.detach().item():.4f}")
+        print(f"Epoch [{epoch+1}/{num_epochs}], Batch [{i+1}/{len(train_loader)}], Loss: {total_loss.detach().item():.4f}")
 
         if i % 50 == 0:
+            best_model = model.state_dict()
+            torch.save(best_model, 'best_train_model.pth') 
+
             print('Evaluating...')
             with torch.no_grad():
                 total_val_loss = 0
@@ -114,7 +114,7 @@ for epoch in range(num_epochs):
                 if total_val_loss < best_val_loss:
                     print('New best validation loss! Saving model...')
                     best_model = model.state_dict()
-                    torch.save(best_model, 'best_model.pth') 
+                    torch.save(best_model, 'best_val_model.pth') 
                     best_val_loss = total_val_loss
 
 
