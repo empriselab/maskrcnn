@@ -141,23 +141,10 @@ def get_bbox_from_mask(mask:np.ndarray) -> np.ndarray:
     Converts the mask of a single object into a bounding box for that mask
     """
     processed_mask = mask.astype('uint8')
-
     nz = processed_mask.nonzero()
     min_y, min_x = min(nz[0]), min(nz[1])
     max_y, max_x = max(nz[0]), max(nz[1])
-
     bbox = np.array([min_x, min_y, (max_x-min_x), (max_y-min_y)])
-
-    # contours, _ = cv2.findContours(processed_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) 
-    # processed_contours = [c for c in contours if cv2.contourArea(c) > 500.0]
-    # if len(processed_contours) > 1:
-    #     print([cv2.contourArea(c) for c in processed_contours])
-    #     cv2.imwrite('test.jpg', processed_mask)
-    #     exit()
-
-    # assert len(processed_contours) == 1
-    # contour = processed_contours[0]
-    # bbox = cv2.boundingRect(contour)    # format x, y, w, h
     return bbox
 
 

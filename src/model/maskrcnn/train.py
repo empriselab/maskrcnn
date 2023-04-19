@@ -1,14 +1,10 @@
-import sys
 import os
-import gc
 from pathlib import Path
 import torch
 from torch import nn
 import torchvision
-import torchvision.transforms as transforms
 from torchvision.models.detection import maskrcnn_resnet50_fpn
 from torchvision.models.detection import MaskRCNN_ResNet50_FPN_Weights
-import torch.utils.data as data
 from torch import utils 
 from torch.utils.data import DataLoader
 import numpy as np
@@ -18,8 +14,10 @@ import utils
 
 BASE_DIR = Path(__file__).absolute().parents[3]
 TRAINING_SET_VERSION = '1'
-DATA_PATH = str(BASE_DIR / 'data' / 'training' / 'maskrcnn')
-BATCH_SIZE = 8
+SAM_CORRECTED_MASKS = 1
+SUBFOLDER = 'sam_plus_maskrcnn' if SAM_CORRECTED_MASKS else 'maskrcnn'
+DATA_PATH = str(BASE_DIR / 'data' / 'training' / SUBFOLDER)
+BATCH_SIZE = 1
 NUM_CLASSES = 34        # 33 food items + a zero class
 TEST_BAG_INDEXES = [1]
 
@@ -54,8 +52,7 @@ model.to(device)
 
 # Define the optimizer and the learning rate scheduler
 params = [p for p in model.parameters() if p.requires_grad]
-optimizer = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=0.0005)
-# lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+optimizer = torch.optim.Adam(params, lr=0.01)
 
 # Set up loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -73,6 +70,8 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
 
         images, targets = batch 
+        if len(images) == 0: continue    # empty batch
+
         images = images.to(device)
         targets = [{k: v.to(device) for k,v in t.items()} for t in targets]
 
@@ -101,6 +100,7 @@ for epoch in range(num_epochs):
                     if j >= 5:
                         break
                     images, targets = batch 
+                    if len(images) == 0: continue    # empty batch
                     images = images.to(device)
                     targets = [{k: v.to(device) for k,v in t.items()} for t in targets]
 
