@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: maskrcnn
+Version: 0.1.0
+Summary: Food detector using a MaskRCNN architecture
+Author: Thomas Patton
+Author-email: tjp93@cornell.edu
+Maintainer: Thomas Patton
+Maintainer-email: tjp93@cornell.edu
+License: UNRELEASED
