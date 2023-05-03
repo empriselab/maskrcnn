@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>food_detector</name>
+  <version>0.1.0</version>
+  <description>Food detector using a MaskRCNN architecture</description>
+  <license>UNRELEASED</license>
+
+  <maintainer email="tjp93@cornell.edu">Thomas Patton</maintainer>
+  <author email="tjp93@cornell.edu">Thomas Patton</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>python</depend>
+
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>torch</exec_depend>
+  <exec_depend>numpy</exec_depend>
+
+
+</package>
