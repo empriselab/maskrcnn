@@ -358,19 +358,24 @@ class Annotator():
         mask = canvas * self.fork_mask    # here we take our 2D integer array and multiply it by the boolean mask array
         return mask
 
-    def save_images(self, color_img, mask_img) -> None:
+    def save_images(self, color_img, mask_img, depth_img, transform) -> None:
         """
-        Write our color image and mask image to the appropriate place in the training directory
+        Write our color image, mask image, depth image, and transform
+        to the appropriate place in the training directory
         """
         training_dir = self.base_dir / 'data' / 'training' / 'v{}'.format(self.training_set_version)
-        # img_dir, mask_dir = training_dir / "images", training_dir / "masks"
         bag_dir = training_dir / "bag_{}".format(self.bagfile_number)
         if not os.path.exists(str(bag_dir)):
             os.mkdir(str(bag_dir))
         img_fpath = str(bag_dir / 'bag_{}_callback_{}_img.png'.format(self.bagfile_number, self.callback_counter)) 
         mask_fpath = str(bag_dir / 'bag_{}_callback_{}_mask.png'.format(self.bagfile_number, self.callback_counter))
+        depth_fpath = str(bag_dir / 'bag_{}_callback_{}_depth.png'.format(self.bagfile_number, self.callback_counter))
+        tf_fpath = str(bag_dir / 'bag_{}_callback_{}_tf.npy'.format(self.bagfile_number, self.callback_counter))
+
         cv2.imwrite(img_fpath, color_img)
         cv2.imwrite(mask_fpath, mask_img)
+        cv2.imwrite(depth_fpath, depth_img)
+        np.save(tf_fpath, transform)
 
     def create_projection_image(self, color_img: np.array, projected_mask: np.array):
         """
@@ -418,7 +423,7 @@ class Annotator():
 
         # for training, save both the color image and the projected mask
         if self.create_training_set:
-            self.save_images(color_img_cv, projected_mask)
+            self.save_images(color_img_cv, projected_mask, depth_img_cv, base_to_camera_tf)
 
         # if display, create a superimposition of img and mask
         if self.display:
@@ -427,27 +432,11 @@ class Annotator():
             with image_lock:
                 np.copyto(global_image, display_image)
 
-        # TODO: Clean up PC artifacts
-        # create/publish a pointcloud
-        # if self.callback_counter == 50:
-        #     self.storage['color'] = color_img_cv
-        #     self.storage['depth'] = depth_img_cv
-        # if self.publish_pointcloud == True and self.callback_counter % 5 == 0 and self.callback_counter != 50:
-        #     init_pc = self.create_pointcloud(color_img, self.storage['color'], self.storage['depth'], \
-        #                         transform=self.init_camera_tf, topic='/generated/init_frame/pointcloud2')
-        #     current_pc = self.create_pointcloud(color_img, color_img_cv, depth_img_cv, \
-        #                         transform=base_to_camera_tf, topic='/generated/current_frame/pointcloud2')
-
-        #     self.pointcloud_init_pub.publish(init_pc)
-        #     self.pointcloud_current_pub.publish(current_pc)
-
-
         # log appropriate callback variables
         callback_end_time = time.time()
         callback_time = float(callback_end_time - callback_start_time)
         self.total_time += callback_time
         self.callback_counter += 1
-        mean_time = self.total_time / self.callback_counter
         print(f"BAG {self.bagfile_number} :: CALLBACK {self.callback_counter:04d} :: TIME {callback_time:.5f}")
         
 
