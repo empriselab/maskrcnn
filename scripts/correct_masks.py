@@ -182,7 +182,7 @@ def save_output(filenames:List[str], images:List[np.ndarray], outputs:List[Tuple
     """
     Saves the resulting output data. `images` will be the original list of images,
     `outputs` will be a same length list with each index being a tuple of masks,
-    boxes, and labels for the exampe
+    boxes, and labels for the example
     """
     assert len(images) == len(outputs) and len(outputs) == len(filenames)
     N = len(images)
@@ -191,19 +191,20 @@ def save_output(filenames:List[str], images:List[np.ndarray], outputs:List[Tuple
         image = images[i]
         masks, boxes, labels = outputs[i]
 
-        # config filenames and save
-        split_filename = filename.split('_')
-        bag_number = split_filename[-4]
-        callback_number = split_filename[-2]
-        os.makedirs(os.path.join(OUTPUT_DIR, 'bag_{}'.format(bag_number)), exist_ok=True)
+        if len(masks) > 0:   # did we actually find any objects in the scene
+            # config filenames and save
+            split_filename = filename.split('_')
+            bag_number = split_filename[-4]
+            callback_number = split_filename[-2]
+            os.makedirs(os.path.join(OUTPUT_DIR, 'bag_{}'.format(bag_number)), exist_ok=True)
 
-        np.savez_compressed(
-            os.path.join(OUTPUT_DIR, 'bag_{}/callback_{}'.format(bag_number, callback_number)),  
-            image=image,
-            masks=masks,
-            labels=labels,
-            boxes=boxes
-        )
+            np.savez_compressed(
+                os.path.join(OUTPUT_DIR, 'bag_{}/callback_{}'.format(bag_number, callback_number)),  
+                image=image,
+                masks=masks,
+                labels=labels,
+                boxes=boxes
+            )
 
 def run_batch(model:SamAutomaticMaskGenerator, files:List[str], batch_indices:np.ndarray):
     """
@@ -264,8 +265,4 @@ def run(batch_size:int=4):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-b", "--bag", default=None)    
-    args = parser.parse_args()
-
     run()

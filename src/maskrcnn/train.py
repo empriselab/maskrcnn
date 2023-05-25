@@ -12,14 +12,14 @@ import numpy as np
 from dataset import MaskRCNNDataset
 import utils
 
-BASE_DIR = Path(__file__).absolute().parents[3]
+BASE_DIR = Path(__file__).absolute().parents[2]
 TRAINING_SET_VERSION = '1'
 SAM_CORRECTED_MASKS = 1
 SUBFOLDER = 'sam_plus_maskrcnn' if SAM_CORRECTED_MASKS else 'maskrcnn'
 DATA_PATH = str(BASE_DIR / 'data' / 'training' / SUBFOLDER)
 BATCH_SIZE = 1
 NUM_CLASSES = 34        # 33 food items + a zero class
-TEST_BAG_INDEXES = [1]
+TEST_BAG_INDEXES = [1,2,3]
 
 
 # Define the device to train the model on
